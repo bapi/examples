@@ -4,9 +4,6 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from mysgd import BATCH_PARTITIONED_SGD
 
-# def train(args, model):
-#     torch.manual_seed(args.seed)
-
 def train(rank, args, model):
     torch.manual_seed(args.seed + rank)
 
