@@ -1,5 +1,6 @@
 from __future__ import print_function
 import argparse
+import time 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -53,6 +54,7 @@ if __name__ == '__main__':
     model.share_memory() # gradients are allocated lazily, so they are not shared here
 
     processes = []
+    start = time.time()
     for rank in range(args.num_processes):
         p = mp.Process(target=train, args=(rank, args, model))
         # We first train the model across `num_processes` processes
@@ -60,8 +62,11 @@ if __name__ == '__main__':
         processes.append(p)
     for p in processes:
         p.join()
-
+    train_end = time.time()
     # Once training is complete, we can test the model
     test(args, model)
-
+    test_end = time.time()
+    train_time = (train_end - start)
+    test_time = (test_end - train_end)
+    print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
 
