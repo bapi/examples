@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 from mysgd import BATCH_PARTITIONED_SGD
 
-def train(rank, args, model):
+def train(rank, args, model, result):
+    # rank = q.get()
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
@@ -16,7 +17,7 @@ def train(rank, args, model):
         batch_size=args.batch_size, shuffle=True, num_workers=1)
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
-        train_epoch(rank, epoch, args, model, train_loader, optimizer)
+        train_epoch(rank, epoch, args, model, train_loader, optimizer, result)
 
 def test(args, model):
     torch.manual_seed(args.seed)
@@ -31,19 +32,23 @@ def test(args, model):
     test_epoch(model, test_loader)
 
 
-def train_epoch(rank, epoch, args, model, data_loader, optimizer):
+def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
     model.train()
     pid = os.getpid()
+    l = 0
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step(rank, args.num_processes)
-        if batch_idx % args.log_interval == 0:
-            print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                pid, epoch, batch_idx * len(data), len(data_loader.dataset),
-                100. * batch_idx / len(data_loader), loss.item()))
+        l += loss.item()
+        # if batch_idx % args.log_interval == 0:
+        #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
+        #         100. * batch_idx / len(data_loader), loss.item()))
+    result[epoch - 1][rank] = l/len(data_loader.dataset)
+        
 
 
 def test_epoch(model, data_loader):

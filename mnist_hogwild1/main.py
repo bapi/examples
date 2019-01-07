@@ -4,7 +4,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.multiprocessing as mp
-
+import queue
+from multiprocessing import pool
 from train import train, test
 
 # Training settings
@@ -23,7 +24,7 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--num-processes', type=int, default=2, metavar='N',
+parser.add_argument('--num-processes', type=int, default=8, metavar='N',
                     help='how many training processes to use (default: 2)')
 
 class Net(nn.Module):
@@ -46,24 +47,33 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-
+    # q = IterableQueue()
+    q = mp.Queue()    
+    for i in range(args.num_processes):
+      q.put(i)
+    
     torch.manual_seed(args.seed)
 
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
-
+    result = torch.zeros(args.epochs, args.num_processes)
+    # p = pool.ThreadPool(args.num_processes)
+    # p.starmap_async(fill, [q, result])
+    # # p.starmap_async(train, [q, args, model, result])
+    # p.close()
+    # p.join()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model))
+        p = mp.Process(target=train, args=(rank, args, model, result))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
-
+    
     for p in processes:
         p.join()
-    # train(7, args, model)
+    # # train(7, args, model)
     # train(args,model)
     # Once training is complete, we can test the model
+    torch.mean(result, 1, True)
+    print(result)
     test(args, model)
-
-
