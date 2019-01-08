@@ -35,7 +35,7 @@ def test(args, model):
 def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
     model.train()
     pid = os.getpid()
-    l = 0
+    l = 10
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
         output = model(data)
@@ -47,7 +47,8 @@ def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
         #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
         #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
         #         100. * batch_idx / len(data_loader), loss.item()))
-    result[epoch - 1][rank] = l/len(data_loader.dataset)
+    result[epoch - 1][rank] = l
+    # print("result[",epoch - 1,"][",rank,"]= ", result[epoch - 1][rank])
         
 
 

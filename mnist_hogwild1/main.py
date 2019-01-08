@@ -4,8 +4,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.multiprocessing as mp
-import queue
-from multiprocessing import pool
 from train import train, test
 
 # Training settings
@@ -47,16 +45,14 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    # q = IterableQueue()
-    q = mp.Queue()    
-    for i in range(args.num_processes):
-      q.put(i)
     
     torch.manual_seed(args.seed)
 
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     result = torch.zeros(args.epochs, args.num_processes)
+    # m = torch.mean(result, 1, True)
+    # print(m)
     # p = pool.ThreadPool(args.num_processes)
     # p.starmap_async(fill, [q, result])
     # # p.starmap_async(train, [q, args, model, result])
@@ -74,6 +70,15 @@ if __name__ == '__main__':
     # # train(7, args, model)
     # train(args,model)
     # Once training is complete, we can test the model
-    torch.mean(result, 1, True)
-    print(result)
+    # torch.mean(result, 1, True)
+    print("(Epoch,Prc):\t", end='', flush=True)
+    for j in range(args.num_processes):
+      print (j,"\t", end='', flush=True)
+    
+    print(" ")  
+    for i in range(args.epochs):
+      print(i, "\t", end='', flush=True)
+      for j in range(args.num_processes):
+        print (result[i][j].item(), "\t", end='', flush=True)
+      print(" ")
     test(args, model)
