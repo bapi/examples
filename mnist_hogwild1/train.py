@@ -36,17 +36,17 @@ def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
     model.train()
     pid = os.getpid()
     l = 10
-    for batch_idx, (data, target) in enumerate(data_loader):
-        optimizer.zero_grad()
-        output = model(data)
-        loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step(rank, args.num_processes)
-        l += loss.item()
-        # if batch_idx % args.log_interval == 0:
-        #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
-        #         100. * batch_idx / len(data_loader), loss.item()))
+    # for batch_idx, (data, target) in enumerate(data_loader):
+    #     optimizer.zero_grad()
+    #     output = model(data)
+    #     loss = F.nll_loss(output, target)
+    #     loss.backward()
+    #     optimizer.step(rank, args.num_processes)
+    #     l += loss.item()
+    #     # if batch_idx % args.log_interval == 0:
+    #     #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+    #     #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
+    #     #         100. * batch_idx / len(data_loader), loss.item()))
     result[epoch - 1][rank] = l
     # print("result[",epoch - 1,"][",rank,"]= ", result[epoch - 1][rank])
         
