@@ -45,6 +45,7 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=1)
 
 if __name__ == '__main__':
+    print("Stochastic Mini-batch co-ordinate descent: Batch-size = ", args.batch_size)
     args = parser.parse_args()
     
     torch.manual_seed(args.seed)
@@ -74,7 +75,6 @@ if __name__ == '__main__':
     # train(args,model)
     # Once training is complete, we can test the model
     # torch.mean(result, 1, True)
-    print("Stochastic Mini-batch co-ordinate descent: Batch-size = ", args.batch_size)
     print("(Ep,Prc):\t", end='', flush=True)
     for j in range(args.num_processes):
       print (j,"\t", end='', flush=True)
