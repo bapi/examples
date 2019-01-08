@@ -53,6 +53,7 @@ if __name__ == '__main__':
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
 
+    result = torch.zeros(args.epochs, args.num_processes)
     processes = []
     start = time.time()
     for rank in range(args.num_processes):
@@ -64,6 +65,17 @@ if __name__ == '__main__':
         p.join()
     train_end = time.time()
     # Once training is complete, we can test the model
+    print("Stochastic Mini-batch Gradient descent:")
+    print("(Ep,Prc):\t", end='', flush=True)
+    for j in range(args.num_processes):
+      print (j,"\t", end='', flush=True)
+    
+    print(" ")  
+    for i in range(args.epochs):
+      print(i, "\t", end='', flush=True)
+      for j in range(args.num_processes):
+        print (result[i][j].item(), "\t", end='', flush=True)
+      print(" ")
     test(args, model)
     test_end = time.time()
     train_time = (train_end - start)

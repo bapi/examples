@@ -1,5 +1,6 @@
 from __future__ import print_function
 import argparse
+import time 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -58,6 +59,7 @@ if __name__ == '__main__':
     # # p.starmap_async(train, [q, args, model, result])
     # p.close()
     # p.join()
+    start = time.time()
     processes = []
     for rank in range(args.num_processes):
         p = mp.Process(target=train, args=(rank, args, model, result))
@@ -67,6 +69,7 @@ if __name__ == '__main__':
     
     for p in processes:
         p.join()
+    train_end = time.time()
     # # train(7, args, model)
     # train(args,model)
     # Once training is complete, we can test the model
@@ -83,3 +86,7 @@ if __name__ == '__main__':
         print (result[i][j].item(), "\t", end='', flush=True)
       print(" ")
     test(args, model)
+    test_end = time.time()
+    train_time = (train_end - start)
+    test_time = (test_end - train_end)
+    print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
