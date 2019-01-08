@@ -46,9 +46,9 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=1)
 
 if __name__ == '__main__':
-    print("Stochastic Mini-batch Gradient descent: Batch-size = ", args.batch_size)
     args = parser.parse_args()
-
+    print("Stochastic Mini-batch Gradient descent: Batch-size = ", args.batch_size)
+    
     torch.manual_seed(args.seed)
 
     model = Net()
