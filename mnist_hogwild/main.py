@@ -65,7 +65,7 @@ if __name__ == '__main__':
         p.join()
     train_end = time.time()
     # Once training is complete, we can test the model
-    print("Stochastic Mini-batch Gradient descent:")
+    print("Stochastic Mini-batch Gradient descent: Batch-size = ", args.batch_size)
     print("(Ep,Prc):\t", end='', flush=True)
     for j in range(args.num_processes):
       print (j,"\t", end='', flush=True)
