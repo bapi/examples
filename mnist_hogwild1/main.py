@@ -112,3 +112,4 @@ if __name__ == '__main__':
     test_time = (test_end - train_end)
     print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
     f.write("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
+    f.close()
