@@ -18,7 +18,7 @@ def train(rank, args, model, result):
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
         train_epoch(epoch, args, model, train_loader, optimizer)
-        result[epoch-1][rank] = torch.rand(1).item() #test(args, model)
+        result[epoch-1][rank] = test(args, model)
 
 def test(args, model):
     torch.manual_seed(args.seed)

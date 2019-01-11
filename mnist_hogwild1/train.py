@@ -22,7 +22,8 @@ def train(rank, args, model, result, learning_rates):
         scheduler.step()
         train_epoch(rank, epoch, args, model, train_loader, optimizer)
         result[epoch-1][rank] = test(args, model)
-        learning_rates[epoch-1] = get_lr(optimizer)
+        if rank == 0:
+          learning_rates[epoch-1] = get_lr(optimizer)
 
 
 def test(args, model):
