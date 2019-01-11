@@ -72,7 +72,11 @@ if __name__ == '__main__':
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     result = torch.zeros(args.epochs, args.num_processes)
+    result.share_memory_()
+
     learning_rates = torch.zeros(args.epochs)
+    learning_rates.share_memory_()
+    
     # m = torch.mean(result, 1, True)
     # print(m)
     # p = pool.ThreadPool(args.num_processes)

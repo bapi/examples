@@ -57,6 +57,8 @@ if __name__ == '__main__':
     model.share_memory() # gradients are allocated lazily, so they are not shared here
 
     result = torch.zeros(args.epochs, args.num_processes)
+    result.share_memory_()
+
     processes = []
     start = time.time()
     for rank in range(args.num_processes):
