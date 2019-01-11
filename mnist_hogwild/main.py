@@ -22,6 +22,8 @@ parser.add_argument('--momentum', type=float, default=0.5, metavar='M',
                     help='SGD momentum (default: 0.5)')
 parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
+parser.add_argument('--lra', type=bool, default=False, metavar='LRA',
+                    help='learning rate adaptable (default: False)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--num-processes', type=int, default=2, metavar='N',
@@ -47,8 +49,8 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    f = open('stochastic_minibatch_gradient_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
-    print("Stochastic Mini-batch gradient descent: Batch-size = "+ str(args.batch_size) + "Num-processes = " + str(args.num_processes) + "\n\n")
+    f = open('stochastic_minibatch_LRA_gradient_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
+    print('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}'.format(args.batch_size, args.num_processes))
     f.write('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
     
     torch.manual_seed(args.seed)

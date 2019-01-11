@@ -1,6 +1,7 @@
 import os
 import torch
 import torch.optim as optim
+import torch.optim.lr_scheduler as lrs
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 
@@ -16,7 +17,10 @@ def train(rank, args, model, result, learning_rates):
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
     for epoch in range(1, args.epochs + 1):
+        if args.lra:
+          scheduler.step()
         train_epoch(epoch, args, model, train_loader, optimizer)
         result[epoch-1][rank] = test(args, model)
         if rank == 0:
