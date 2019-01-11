@@ -103,9 +103,23 @@ if __name__ == '__main__':
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
       for j in range(args.num_processes):
-        f.write('{:.6f}\t'.format(result[i][j].item()))
-      f.write('{:.6f}'.format(learning_rates[i].item()))
+        f.write(str('%.6f'%result[i][j].item())+"\t")
+      # f.write('{:.6f}'.format(learning_rates[i].item()))
+      f.write(str('%.6f'%learning_rates[i].item()))
       f.write("\n")
+
+    f.write("(Ep,Prc):\t")
+    for j in range(args.num_processes):
+      f.write(str(j)+"\t")
+    
+    f.write('\n')  
+    for i in range(args.epochs):
+      f.write(str(i)+"\t")
+      for j in range(args.num_processes):
+        
+      f.write("\n")
+    
+
     test(args, model)
     test_end = time.time()
     train_time = (train_end - start)

@@ -48,8 +48,8 @@ class Net(nn.Module):
 if __name__ == '__main__':
     args = parser.parse_args()
     f = open('stochastic_minibatch_gradient_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
-    print('Stochastic Mini-batch gradient descent: Batch-size = {}, Num-processes = {}'.format(args.batch_size, args.num_processes))
-    f.write('Stochastic Mini-batch gradient descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
+    print("Stochastic Mini-batch gradient descent: Batch-size = "+ str(args.batch_size) + "Num-processes = " + str(args.num_processes) + "\n\n")
+    f.write("Stochastic Mini-batch gradient descent: Batch-size = "+ str(args.batch_size) + "Num-processes = " + str(args.num_processes) + "\n\n")
     
     torch.manual_seed(args.seed)
 
@@ -70,13 +70,13 @@ if __name__ == '__main__':
     # Once training is complete, we can test the model
     f.write("(Ep,Prc):\t")
     for j in range(args.num_processes):
-      f.write('{}\t'.format(j))
+      f.write(str(j)+"\t")
     
     f.write('\n')  
     for i in range(args.epochs):
-      f.write('{}\t'.format(i))
+      f.write(str(i)+"\t")
       for j in range(args.num_processes):
-        f.write('{:.6f}\t'.format(result[i][j].item()))
+        f.write(str('%.6f'%result[i][j].item())+"\t")
       f.write("\n")
     test(args, model)
     test_end = time.time()
