@@ -1,10 +1,11 @@
 import os
 import torch
 import torch.nn.functional as F
+import torch.optim.lr_scheduler as lrs
 from torchvision import datasets, transforms
 from mysgd import BATCH_PARTITIONED_SGD
 
-def train(rank, args, model, result):
+def train(rank, args, model, result, learning_rates):
     # rank = q.get()
     torch.manual_seed(args.seed + rank)
 
@@ -16,8 +17,13 @@ def train(rank, args, model, result):
                     ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
     for epoch in range(1, args.epochs + 1):
-        train_epoch(rank, epoch, args, model, train_loader, optimizer, result)
+        scheduler.step()
+        train_epoch(rank, epoch, args, model, train_loader, optimizer)
+        result[epoch-1][rank] = test(args, model)
+        learning_rates[epoch-1] = get_lr(optimizer)
+
 
 def test(args, model):
     torch.manual_seed(args.seed)
@@ -29,26 +35,22 @@ def test(args, model):
         ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
-    test_epoch(model, test_loader)
+    return test_epoch(model, test_loader)
 
 
-def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
+def train_epoch(rank, epoch, args, model, data_loader, optimizer):
     model.train()
     pid = os.getpid()
-    l = 0
     for batch_idx, (data, target) in enumerate(data_loader):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step(rank, args.num_processes)
-        l += loss.item()
-        # if batch_idx % args.log_interval == 0:
-        #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
-        #         100. * batch_idx / len(data_loader), loss.item()))
-    result[epoch - 1][rank] = l
-    # print("result[",epoch - 1,"][",rank,"]= ", result[epoch - 1][rank])
+        if batch_idx % args.log_interval == 0:
+            print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLearning-rate: {:.6f}\tLoss: {:.6f}'.format(
+                pid, epoch, batch_idx * len(data), len(data_loader.dataset),
+                100. * batch_idx / len(data_loader), get_lr(optimizer), loss.item()))
         
 
 
@@ -67,3 +69,8 @@ def test_epoch(model, data_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(data_loader.dataset),
         100. * correct / len(data_loader.dataset)))
+    return test_loss
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']

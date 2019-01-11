@@ -4,8 +4,9 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.multiprocessing as mp
+# import torch.multiprocessing as mp
 from train import train, test
+from torch.multiprocessing import Process, Value, Lock, Queue
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -23,9 +24,25 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--num-processes', type=int, default=8, metavar='N',
+parser.add_argument('--num-processes', type=int, default=1, metavar='N',
                     help='how many training processes to use (default: 2)')
 
+class Counter(object):
+    def __init__(self, initval=0):
+        self.val = Value('i', initval)
+        self.lock = Lock()
+
+    def increment(self):
+        with self.lock:
+            self.val.value += 1
+
+    def value(self):
+        with self.lock:
+            return self.val.value
+def func(counter):
+    for i in range(50):
+        time.sleep(0.01)
+        counter.increment()
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -46,13 +63,16 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print("Stochastic Mini-batch co-ordinate descent: Batch-size = ", args.batch_size)
+    f = open('stochastic_minibatch_coordinate_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
+    print('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}'.format(args.batch_size, args.num_processes))
+    f.write('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
     
     torch.manual_seed(args.seed)
 
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     result = torch.zeros(args.epochs, args.num_processes)
+    learning_rates = torch.zeros(args.epochs)
     # m = torch.mean(result, 1, True)
     # print(m)
     # p = pool.ThreadPool(args.num_processes)
@@ -63,7 +83,7 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, result))
+        p = Process(target=train, args=(rank, args, model, result, learning_rates))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
@@ -74,19 +94,21 @@ if __name__ == '__main__':
     # # train(7, args, model)
     # train(args,model)
     # Once training is complete, we can test the model
-    # torch.mean(result, 1, True)
-    print("(Ep,Prc):\t", end='', flush=True)
+    f.write("(Ep,Prc):\t")
     for j in range(args.num_processes):
-      print (j,"\t", end='', flush=True)
+      f.write('{}\t'.format(j))
+    f.write("LR\t")
     
-    print(" ")  
+    f.write('\n')  
     for i in range(args.epochs):
-      print(i, "\t", end='', flush=True)
+      f.write('{}\t'.format(i))
       for j in range(args.num_processes):
-        print (result[i][j].item(), "\t", end='', flush=True)
-      print(" ")
+        f.write('{:.6f}\t'.format(result[i][j].item()))
+      f.write('{:.6f}'.format(learning_rates[i].item()))
+      f.write("\n")
     test(args, model)
     test_end = time.time()
     train_time = (train_end - start)
     test_time = (test_end - train_end)
     print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
+    f.write("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
