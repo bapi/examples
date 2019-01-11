@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 
-def train(rank, args, model, result):
+def train(rank, args, model, result, learning_rates):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
@@ -19,6 +19,8 @@ def train(rank, args, model, result):
     for epoch in range(1, args.epochs + 1):
         train_epoch(epoch, args, model, train_loader, optimizer)
         result[epoch-1][rank] = test(args, model)
+        if rank == 0:
+          learning_rates[epoch-1] = get_lr(optimizer)
 
 def test(args, model):
     torch.manual_seed(args.seed)
@@ -67,3 +69,7 @@ def test_epoch(model, data_loader):
         test_loss, correct, len(data_loader.dataset),
         100. * correct / len(data_loader.dataset)))
     return test_loss
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']

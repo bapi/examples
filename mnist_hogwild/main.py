@@ -49,7 +49,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     f = open('stochastic_minibatch_gradient_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
     print("Stochastic Mini-batch gradient descent: Batch-size = "+ str(args.batch_size) + "Num-processes = " + str(args.num_processes) + "\n\n")
-    f.write("Stochastic Mini-batch gradient descent: Batch-size = "+ str(args.batch_size) + "Num-processes = " + str(args.num_processes) + "\n\n")
+    f.write('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
     
     torch.manual_seed(args.seed)
 
@@ -59,10 +59,13 @@ if __name__ == '__main__':
     result = torch.zeros(args.epochs, args.num_processes)
     result.share_memory_()
 
+    learning_rates = torch.zeros(args.epochs)
+    learning_rates.share_memory_()
+    
     processes = []
     start = time.time()
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, result))
+        p = mp.Process(target=train, args=(rank, args, model, result, learning_rates))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
@@ -72,14 +75,18 @@ if __name__ == '__main__':
     # Once training is complete, we can test the model
     f.write("(Ep,Prc):\t")
     for j in range(args.num_processes):
-      f.write(str(j)+"\t")
+      f.write('{}\t'.format(j))
+    f.write("LR\t")
     
     f.write('\n')  
     for i in range(args.epochs):
-      f.write(str(i)+"\t")
+      f.write('{}\t'.format(i))
       for j in range(args.num_processes):
         f.write(str('%.6f'%result[i][j].item())+"\t")
+      # f.write('{:.6f}'.format(learning_rates[i].item()))
+      f.write(str('%.6f'%learning_rates[i].item()))
       f.write("\n")
+
     test(args, model)
     test_end = time.time()
     train_time = (train_end - start)
