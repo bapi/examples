@@ -8,7 +8,7 @@ def train(rank, args, model, result):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=False, download=True,
+        datasets.MNIST('./data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -24,7 +24,7 @@ def test(args, model):
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+        datasets.MNIST('./data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
