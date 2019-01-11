@@ -10,7 +10,7 @@ def train(rank, args, model, result, learning_rates):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
+        datasets.MNIST('./data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
