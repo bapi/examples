@@ -8,7 +8,7 @@ def train(rank, args, model, result):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
+        datasets.MNIST('./data', train=False, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -17,7 +17,8 @@ def train(rank, args, model, result):
 
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
-        train_epoch(epoch, args, model, train_loader, optimizer, result)
+        train_epoch(epoch, args, model, train_loader, optimizer)
+        result[epoch-1][rank] = test(args, model)
 
 def test(args, model):
     torch.manual_seed(args.seed)
@@ -29,10 +30,10 @@ def test(args, model):
         ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
-    test_epoch(model, test_loader)
+    return test_epoch(model, test_loader)
 
 
-def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
+def train_epoch(epoch, args, model, data_loader, optimizer):
     model.train()
     pid = os.getpid()
     l = 0
@@ -43,11 +44,10 @@ def train_epoch(rank, epoch, args, model, data_loader, optimizer, result):
         loss.backward()
         optimizer.step()
         l += loss.item()
-        # if batch_idx % args.log_interval == 0:
-        #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-        #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
-        #         100. * batch_idx / len(data_loader), loss.item()))
-    result[epoch - 1][rank] = l
+        if batch_idx % args.log_interval == 0:
+            print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+                pid, epoch, batch_idx * len(data), len(data_loader.dataset),
+                100. * batch_idx / len(data_loader), loss.item()))
     
 
 
@@ -66,3 +66,4 @@ def test_epoch(model, data_loader):
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(data_loader.dataset),
         100. * correct / len(data_loader.dataset)))
+    return test_loss

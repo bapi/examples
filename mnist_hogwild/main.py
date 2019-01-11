@@ -14,7 +14,7 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
+parser.add_argument('--epochs', type=int, default=2, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
@@ -47,7 +47,9 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    print("Stochastic Mini-batch Gradient descent: Batch-size = ", args.batch_size)
+    f = open('stochastic_minibatch_gradient_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
+    print('Stochastic Mini-batch gradient descent: Batch-size = {}, Num-processes = {}'.format(args.batch_size, args.num_processes))
+    f.write('Stochastic Mini-batch gradient descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
     
     torch.manual_seed(args.seed)
 
@@ -58,7 +60,7 @@ if __name__ == '__main__':
     processes = []
     start = time.time()
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model))
+        p = mp.Process(target=train, args=(rank, args, model, result))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
@@ -66,19 +68,20 @@ if __name__ == '__main__':
         p.join()
     train_end = time.time()
     # Once training is complete, we can test the model
-    print("(Ep,Prc):\t", end='', flush=True)
+    f.write("(Ep,Prc):\t")
     for j in range(args.num_processes):
-      print (j,"\t", end='', flush=True)
+      f.write('{}\t'.format(j))
     
-    print(" ")  
+    f.write('\n')  
     for i in range(args.epochs):
-      print(i, "\t", end='', flush=True)
+      f.write('{}\t'.format(i))
       for j in range(args.num_processes):
-        print (result[i][j].item(), "\t", end='', flush=True)
-      print(" ")
+        f.write('{:.6f}\t'.format(result[i][j].item()))
+      f.write("\n")
     test(args, model)
     test_end = time.time()
     train_time = (train_end - start)
     test_time = (test_end - train_end)
     print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
+    f.write("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
 
