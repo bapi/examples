@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 
 from mysgd import StochasticGD
 
-def train(rank, args, model, result):
+def train(rank, args, model, result, val, lock):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
@@ -27,6 +27,8 @@ def train(rank, args, model, result):
         if args.lra:
           scheduler.step()
         train_epoch(epoch, args, model, train_loader, optimizer)
+        with lock:
+          val.value += 1
         if rank == 0:
           result[epoch-1][0] = get_lr(optimizer)
 
@@ -44,15 +46,15 @@ def test(args, model, results, val, lock):
     counter = 0
     np = args.num_processes
     while counter < args.epochs:
-      if val.value > 0 and val.value % np == 0:
+      if val.value == np:
         with lock:
           val.value -= np
         l,a = test_epoch(model, test_loader)
         print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
         results[counter][1] = l
         results[counter][2] = a
-        # f.write(str('%.6f'%l)+"\n")
         counter += 1
+      # print("value and counter = " + str(val.value) + " " + str(counter))
   
 
 

@@ -16,7 +16,7 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=1, metavar='N',
+parser.add_argument('--epochs', type=int, default=2, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
@@ -69,7 +69,6 @@ if __name__ == '__main__':
     else:
       f = open('hoigwild'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
-    # f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'usebackprop='+str(args.usemysgd)+'.txt',"w")
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
@@ -77,10 +76,11 @@ if __name__ == '__main__':
     
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, results))
+        p = mp.Process(target=train, args=(rank, args, model, results, val, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
+    
     p = mp.Process(target=test, args=(args, model, results, val, lock))
     p.start()
     processes.append(p)
