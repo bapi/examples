@@ -152,7 +152,7 @@ def main():
     results = torch.zeros(args.epochs,3)
     results.share_memory_()
     
-    f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'usebackprop='+str(args.usemysgd)+'.txt',"w")
+    f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'_usebackprop='+str(args.usemysgd)+'.txt',"w")
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
