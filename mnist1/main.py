@@ -111,7 +111,7 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--usemysgd', type=bool, default=True, metavar='U',
+    parser.add_argument('--usemysgd', type=int, default=0, metavar='U',
                         help='Whether to use custom SGD')
     
     parser.add_argument('--save-model', action='store_true', default=False,
