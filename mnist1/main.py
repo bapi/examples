@@ -8,6 +8,7 @@ import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 from torchvision import datasets, transforms
 from torch.multiprocessing import Process, Value, Lock, Queue
+from mysgd import StochasticGD
 
 
 class Net(nn.Module):
@@ -39,8 +40,11 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
+        if not args.usemysgd:
+          loss.backward()
+          optimizer.step()
+        else:
+          optimizer.step(loss)
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
@@ -60,11 +64,10 @@ def test_epoch(args, model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss /= len(test_loader.dataset)
-
+    accuracy = 100. * correct / len(test_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        100. * correct / len(test_loader.dataset)))
-    return test_loss
+        test_loss, correct, len(test_loader.dataset), accuracy))
+    return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, scheduler, results, val, lock):
   for epoch in range(1, args.epochs + 1):
@@ -81,9 +84,10 @@ def test(args, model, device, test_loader, results, val, lock):
     if val.value > 0:
       with lock:
         val.value -= 1
-      l = test_epoch(args, model, device, test_loader)
+      l,a = test_epoch(args, model, device, test_loader)
       print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
       results[counter][1] = l
+      results[counter][2] = a
       # f.write(str('%.6f'%l)+"\n")
       counter += 1
     # print("still waiting for update!")
@@ -107,6 +111,8 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
+    parser.add_argument('--usemysgd', type=bool, default=True, metavar='U',
+                        help='Whether to use custom SGD')
     
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
@@ -136,17 +142,20 @@ def main():
     model = Net()#.to(device)
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    if args.usemysgd:
+      optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    else:
+      optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
     val = Value('i', 0)
     lock = Lock()
-    results = torch.zeros(args.epochs,2)
+    results = torch.zeros(args.epochs,3)
     results.share_memory_()
     
-    f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'.txt',"w")
+    f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'usebackprop='+str(args.usemysgd)+'.txt',"w")
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write("\n\nEpoch\tLR\tLoss\n\n")
+    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     start = time.time()
     processes = []
     for rank in range(1):
@@ -165,7 +174,8 @@ def main():
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
       f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.6f'%results[i][1].item())+"\n")
+      f.write(str('%.6f'%results[i][1].item())+"\t")
+      f.write(str('%.6f'%results[i][2].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 
