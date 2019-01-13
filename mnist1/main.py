@@ -134,6 +134,8 @@ def main():
 
 
     model = Net()#.to(device)
+    model.share_memory() # gradients are allocated lazily, so they are not shared here
+    
     optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
     val = Value('i', 0)
