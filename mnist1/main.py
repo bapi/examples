@@ -111,11 +111,11 @@ def main():
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     args = parser.parse_args()
-    # use_cuda = not args.no_cuda and torch.cuda.is_available()
+    use_cuda = False #not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
 
-    # device = torch.device("cuda" if use_cuda else "cpu")
+    device = torch.device("cuda" if use_cuda else "cpu")
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
