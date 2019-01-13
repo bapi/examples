@@ -1,0 +1,9 @@
+Stochastic Gradient descent: Batch-size = 64
+
+Epoch	LR	Loss
+
+0	0.010000	0.100270
+1	0.009500	0.062329
+
+
+Training time = 162.96348810195923
