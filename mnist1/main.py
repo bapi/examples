@@ -41,10 +41,10 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
         loss = F.nll_loss(output, target)
         loss.backward()
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
+        # if batch_idx % args.log_interval == 0:
+        #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
+        #         epoch, batch_idx * len(data), len(train_loader.dataset),
+        #         100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
     return lerning_rate
 
 def test_epoch(args, model, device, test_loader):
@@ -169,12 +169,6 @@ def main():
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
     f.close()
-
-
-    # for epoch in range(1, args.epochs + 1):
-    #     scheduler.step()
-    #     train_epoch(args, model, device, train_loader, optimizer, epoch)
-    #     test_epoch(args, model, device, test_loader)
 
     if (args.save_model):
         torch.save(model.state_dict(),"mnist_cnn.pt")
