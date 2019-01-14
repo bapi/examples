@@ -134,6 +134,7 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                   p.data.add_(-group['lr'], d_p)
                 else:
                   tensor_part_add(p.data, d_p, start, stop, -group['lr'])
-                
+                counter+=p_nmel
+                  
                 
         return loss
