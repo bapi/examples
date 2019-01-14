@@ -96,9 +96,9 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                 p_nmel = p.numel()
                 start = max(0, rankstart - counter)
                 stop = min(rankstop, p_nmel - 1)
-                
+                counter+=p_nmel
+                  
                 if start >= p_nmel or stop < 0:
-                  counter+=p_nmel
                   continue
                 
                 d = None
@@ -134,7 +134,6 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                   p.data.add_(-group['lr'], d_p)
                 else:
                   tensor_part_add(p.data, d_p, start, stop, -group['lr'])
-                counter+=p_nmel
                   
                 
         return loss
