@@ -18,10 +18,10 @@ def train(rank, args, model, plength, chunk_size, result, val, lock):
                     ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
-    if args.usemysgd:
-      optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    else:
-      optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    # if args.usemysgd:
+    optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    # else:
+    #   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
     for epoch in range(1, args.epochs + 1):
         if args.lra:
@@ -67,9 +67,9 @@ def train_epoch(epoch, args, model, plength, chunk_size, data_loader, optimizer,
         loss = F.nll_loss(output, target)
         if not args.usemysgd:
           loss.backward()
-          optimizer.step()
-        else:#rank, l, plength, numproc, chunk_size, usemysgd, 
-          optimizer.step(rank, loss, plength, args.num_processes, chunk_size, args.usemysgd)
+        #   optimizer.step()
+        # else:#rank, l, plength, numproc, chunk_size, usemysgd, 
+        optimizer.step(rank, loss, plength, args.num_processes, chunk_size, args.usemysgd)
         if batch_idx % args.log_interval == 0:
             print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 pid, epoch, batch_idx * len(data), len(data_loader.dataset),

@@ -26,7 +26,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--num-processes', type=int, default=7, metavar='N',
                     help='how many training processes to use (default: 2)')
-parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
+parser.add_argument('--usemysgd', type=int, default=0, metavar='U',
                         help='Whether to use custom SGD')
 parser.add_argument('--lra', type=bool, default=True, metavar='LR',
                         help='Whether to use adaptable learning rate')

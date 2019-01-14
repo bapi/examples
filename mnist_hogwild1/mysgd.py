@@ -95,10 +95,11 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
             for p in group['params']:
                 p_nmel = p.numel()
                 start = max(0, rankstart - counter)
-                stop = min(rankstop, p_nmel - 1)
+                stop = min(rankstop - counter, p_nmel - 1)
                   
                 if start >= p_nmel or stop < 0:
                   counter+=p_nmel
+                  # print("continues")
                   continue
                 
                 d = None
@@ -107,7 +108,8 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                 else:
                   d = p.grad
                 if d is None:
-                    continue
+                  # print("nograd")
+                  continue
                 
                 if usemysgd == 1:
                   d_p = d[0]
@@ -133,7 +135,9 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                 if start == 0 and stop == p_nmel - 1:
                   p.data.add_(-group['lr'], d_p)
                 else:
+                  # print("partadd")
                   tensor_part_add(p.data, d_p, start, stop, -group['lr'])
+                
                 counter+=p_nmel
                     
                 
