@@ -1,12 +1,7 @@
-from __future__ import print_function
 import torch
-import copy
-import math
+from torch.optim.optimizer import Optimizer, required
 from tensor_part_add import tensor_part_add
-# import torch.optim as optim
-# import torch.optim.Optimizer as Optimizer
-# import torch.optim.required as required
-# from optim import Optimizer, required
+
 required = object()
 
 
@@ -56,15 +51,14 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
         The Nesterov version is analogously modified.
     """
 
-    def __init__(self, params, lr=required, momentum=0, dampening=0,
-                 weight_decay=0, nesterov=False):
+    def __init__(self, params, lr=required, momentum=0, 
+                dampening=0, weight_decay=0, nesterov=False):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:
             raise ValueError("Invalid momentum value: {}".format(momentum))
         if weight_decay < 0.0:
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
-
         defaults = dict(lr=lr, momentum=momentum, dampening=dampening,
                         weight_decay=weight_decay, nesterov=nesterov)
         if nesterov and (momentum <= 0 or dampening != 0):
@@ -75,8 +69,9 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
         super(BATCH_PARTITIONED_SGD, self).__setstate__(state)
         for group in self.param_groups:
             group.setdefault('nesterov', False)
-    
-    def step(self, rank, num_processes, closure=None):
+          
+
+    def step(self, rank, l, plength, numproc, chunk_size, usemysgd, closure=None):
         """Performs a single optimization step.
 
         Arguments:
@@ -86,17 +81,41 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
-
+        rankstart = rank*chunk_size
+        rankstop = (rank+1)*chunk_size - 1
+        if rank == numproc - 1:
+          rankstop = plength - 1
+                
         for group in self.param_groups:
             weight_decay = group['weight_decay']
             momentum = group['momentum']
             dampening = group['dampening']
             nesterov = group['nesterov']
-
+            counter = 0
             for p in group['params']:
-                if p.grad is None:
+                p_nmel = p.numel()
+                start = max(0, rankstart - counter)
+                stop = min(rankstop, p_nmel - 1)
+                
+                if start >= p_nmel or stop < 0:
+                  counter+=p_nmel
+                  continue
+                
+                d = None
+                if usemysgd == 1:
+                  d = torch.autograd.grad(l, p, retain_graph=True)
+                else:
+                  d = p.grad
+                if d is None:
                     continue
-                d_p = p.grad.data
+                
+                if usemysgd == 1:
+                  d_p = d[0]
+                else:
+                  d_p = p.grad.data
+                # if p.grad is None:
+                #     continue
+                # d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
                 if momentum != 0:
@@ -111,15 +130,10 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
                         d_p = d_p.add(momentum, buf)
                     else:
                         d_p = buf
-                nmel = d_p.numel()
-                if nmel <= num_processes:
+                if start == 0 and stop == p_nmel - 1:
                   p.data.add_(-group['lr'], d_p)
                 else:
-                  chunk_size = int(nmel/num_processes)
-                  start = rank*chunk_size
-                  stop = (rank+1)*chunk_size - 1
-                  if rank == num_processes - 1:
-                    stop = nmel - 1
-                  tensor_part_add(p.data, d_p, start, stop, -group['lr'], rank)
+                  tensor_part_add(p.data, d_p, start, stop, -group['lr'])
+                
                 
         return loss

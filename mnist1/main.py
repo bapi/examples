@@ -162,11 +162,11 @@ def main():
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     start = time.time()
     processes = []
-    for rank in range(1):
-        p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
-        # We first train the model across `num_processes` processes
-        p.start()
-        processes.append(p)
+    # for rank in range(1):
+    p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
+    # We first train the model across `num_processes` processes
+    p.start()
+    processes.append(p)
     p = Process(target=test, args=(args, model, device, test_loader, results, val, lock))
     p.start()
     processes.append(p)

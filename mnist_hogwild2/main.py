@@ -4,10 +4,8 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.multiprocessing as mp
 from torch.multiprocessing import Process, Value, Lock, Queue
 
-from mysgd import StochasticGD
 from train import train, test
 
 # Training settings
@@ -76,12 +74,12 @@ if __name__ == '__main__':
     
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, results, val, lock))
+        p = Process(target=train, args=(rank, args, model, results, val, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = mp.Process(target=test, args=(args, model, results, val, lock))
+    p = Process(target=test, args=(args, model, results, val, lock))
     p.start()
     processes.append(p)
     for p in processes:

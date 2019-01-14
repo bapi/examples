@@ -4,17 +4,19 @@ import torch
 import math
 
 
-def tensor_part_add(t1, t2, start_pos, end_pos, factor, rank):
+def tensor_part_add(t1, t2, start_pos, end_pos, factor):
   if t1.size() != t2.size():
-    print("Tensors need to be of the same shapes!", "rank = ", rank)
+    print("Tensors need to be of the same shapes!")
     return
   n1 = t1.numel()
   positions = end_pos - start_pos + 1
   if n1 < positions or n1 < end_pos+1 :
-    print("Tensors' size does not match with positions.", "rank = ", rank, "start = ", start_pos, "stop = ", end_pos, "positions = ", positions)
+    print("Tensors' size does not match with positions.", "start = ", start_pos, "stop = ", end_pos, "positions = ", positions)
     return
 
   dim = len(t1.size())
+  if dim == 1:
+    tensor_part_add1(t1, t2, start_pos, end_pos, factor)
   if dim == 2:
     tensor_part_add2(t1, t2, start_pos, end_pos, positions, factor)
   elif dim == 3:    
@@ -32,6 +34,9 @@ def tensor_part_add(t1, t2, start_pos, end_pos, factor, rank):
   elif dim == 9:    
     tensor_part_add9(t1, t2, start_pos, end_pos, positions, factor)
 
+def tensor_part_add1(t1, t2, start_pos, end_pos, factor):
+  t1[start_pos:end_pos + 1].add_(factor, t2[start_pos:end_pos + 1])
+  
 def tensor_part_add2(t1, t2, start_pos, end_pos, positions, factor):
   s = t1.size(1)
   if t1.size(0) == 1 or start_pos + positions <= s:

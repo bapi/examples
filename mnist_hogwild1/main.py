@@ -4,9 +4,9 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-# import torch.multiprocessing as mp
-from train import train, test
 from torch.multiprocessing import Process, Value, Lock, Queue
+
+from train import train, test
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -14,7 +14,7 @@ parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=2, metavar='N',
+parser.add_argument('--epochs', type=int, default=4, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
@@ -24,8 +24,12 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--num-processes', type=int, default=2, metavar='N',
+parser.add_argument('--num-processes', type=int, default=7, metavar='N',
                     help='how many training processes to use (default: 2)')
+parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
+                        help='Whether to use custom SGD')
+parser.add_argument('--lra', type=bool, default=True, metavar='LR',
+                        help='Whether to use adaptable learning rate')
 
 class Counter(object):
     def __init__(self, initval=0):
@@ -63,59 +67,53 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
-    f = open('stochastic_minibatch_coordinate_descent'+'_batch_size='+str(args.batch_size)+'_num_proc='+str(args.num_processes)+'.txt',"w")
-    print('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}'.format(args.batch_size, args.num_processes))
-    f.write('Stochastic Mini-batch co-ordinate descent: Batch-size = {}, Num-processes = {}\n\n'.format(args.batch_size, args.num_processes))
-    
+
     torch.manual_seed(args.seed)
 
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
-    result = torch.zeros(args.epochs, args.num_processes)
-    result.share_memory_()
-
-    learning_rates = torch.zeros(args.epochs)
-    learning_rates.share_memory_()
+    plength = 0
+    for p in model.parameters():
+      plength+=p.numel()
+    chunk_size = int(plength/args.num_processes)
+      
+    val = Value('i', 0)
+    lock = Lock()
+    results = torch.zeros(args.epochs,3)
+    results.share_memory_()
     
-    # m = torch.mean(result, 1, True)
-    # print(m)
-    # p = pool.ThreadPool(args.num_processes)
-    # p.starmap_async(fill, [q, result])
-    # # p.starmap_async(train, [q, args, model, result])
-    # p.close()
-    # p.join()
+    if args.usemysgd:
+      f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
+    else:
+      f = open('hoigwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
+
+    print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = Process(target=train, args=(rank, args, model, result, learning_rates))
+        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, val, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
+    p = Process(target=test, args=(args, model, results, val, lock))
+    p.start()
+    processes.append(p)
     for p in processes:
         p.join()
+    # train(0, args, model, plength, chunk_size, results, val, lock)
     train_end = time.time()
-    # # train(7, args, model)
-    # train(args,model)
-    # Once training is complete, we can test the model
-    f.write("(Ep,Prc):\t")
-    for j in range(args.num_processes):
-      f.write('{}\t'.format(j))
-    f.write("LR\t")
+    train_time = (train_end - start)
     
-    f.write('\n')  
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
-      for j in range(args.num_processes):
-        f.write(str('%.6f'%result[i][j].item())+"\t")
-      # f.write('{:.6f}'.format(learning_rates[i].item()))
-      f.write(str('%.6f'%learning_rates[i].item()))
-      f.write("\n")
+      f.write(str('%.6f'%results[i][0].item())+"\t")
+      f.write(str('%.6f'%results[i][1].item())+"\t")
+      f.write(str('%.6f'%results[i][2].item())+"\n")
+      
 
-    test(args, model)
-    test_end = time.time()
-    train_time = (train_end - start)
-    test_time = (test_end - train_end)
-    print("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
-    f.write("Training time = " + str(train_time) + " and Testing time = " + str(test_time)) 
+    print("Training time = " + str(train_time)) 
+    f.write("\n\nTraining time = " + str(train_time)) 
     f.close()
