@@ -26,7 +26,7 @@ parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
 parser.add_argument('--num-processes', type=int, default=7, metavar='N',
                     help='how many training processes to use (default: 2)')
-parser.add_argument('--usemysgd', type=int, default=0, metavar='U',
+parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
 parser.add_argument('--lra', type=bool, default=True, metavar='LR',
                         help='Whether to use adaptable learning rate')
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     if args.usemysgd:
       f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
     else:
-      f = open('hoigwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
+      f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
