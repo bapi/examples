@@ -78,7 +78,7 @@ if __name__ == '__main__':
       
     val = Value('i', 0)
     lock = Lock()
-    results = torch.zeros(args.epochs,3)
+    results = torch.zeros(args.epochs,2+args.num_processes)
     results.share_memory_()
     barrier = Array('i', range(args.num_processes))
     # barrier.share_memory_()
@@ -118,9 +118,10 @@ if __name__ == '__main__':
     
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
-      f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.6f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\n")
+      for j in range(args.num_processes):
+        f.write(str('%.6f'%results[i][j].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes + 1].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 

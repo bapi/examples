@@ -30,7 +30,7 @@ def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, 
         with lock:
           barrier[rank] += 1
         # if rank == 0:
-        #   result[epoch-1][0] = get_lr(optimizer)
+        result[epoch-1][rank] = get_lr(optimizer)
         tl, a = test_epoch(model, test_loader, False)
         scheduler.step(tl)
 
@@ -55,8 +55,8 @@ def test(args, model, results, test_loader, barrier, val, lock):
         if l_counter == args.num_processes:
             l,a = test_epoch(model, test_loader, True)
             print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
-            results[counter][1] = l
-            results[counter][2] = a
+            results[counter][args.num_processes] = l
+            results[counter][args.num_processes+1] = a
             counter += 1
             l_counter = 0
             already_checked = torch.zeros(len(barrier))
