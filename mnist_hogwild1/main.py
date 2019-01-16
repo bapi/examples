@@ -4,7 +4,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.multiprocessing import Process, Value, Lock, Queue
+from torch.multiprocessing import Process, Value, Lock, Queue, Array
 from torchvision import datasets, transforms
 from train import train, test
 
@@ -80,6 +80,8 @@ if __name__ == '__main__':
     lock = Lock()
     results = torch.zeros(args.epochs,3)
     results.share_memory_()
+    barrier = Array('i', range(args.num_processes))
+    # barrier.share_memory_()
     
     if args.usemysgd:
       f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
@@ -100,12 +102,12 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, test_loader, val, lock))
+        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, test_loader, barrier, val, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, test_loader, val, lock))
+    p = Process(target=test, args=(args, model, results, test_loader, barrier, val, lock))
     p.start()
     processes.append(p)
     for p in processes:
