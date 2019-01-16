@@ -9,7 +9,8 @@ from mysgd import BATCH_PARTITIONED_SGD
 
 def train(rank, args, model, plength, chunk_size, result, val, lock):
     torch.manual_seed(args.seed + rank)
-
+    gamma = 0.9 + torch.rand(1)/10
+    
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=True, download=True,
                     transform=transforms.Compose([
@@ -22,7 +23,7 @@ def train(rank, args, model, plength, chunk_size, result, val, lock):
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # else:
     #   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
+    scheduler = lrs.ExponentialLR(optimizer, gamma)
     for epoch in range(1, args.epochs + 1):
         if args.lra:
           scheduler.step()

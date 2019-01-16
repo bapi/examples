@@ -69,7 +69,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
-
+    x = 0.9 + torch.rand(1)/10
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     plength = 0
