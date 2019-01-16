@@ -86,8 +86,8 @@ if __name__ == '__main__':
     else:
       f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
-    print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    print('Batch-size = {}'.format(args.batch_size))
+    f.write('Batch-size = {}'.format(args.batch_size))
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     start = time.time()
     processes = []
