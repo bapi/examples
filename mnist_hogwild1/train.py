@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 
 from mysgd import BATCH_PARTITIONED_SGD
 
-def train(rank, args, model, plength, chunk_size, result, val, lock):
+def train(rank, args, model, plength, chunk_size, result, test_loader, val, lock):
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
@@ -23,27 +23,21 @@ def train(rank, args, model, plength, chunk_size, result, val, lock):
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # else:
     #   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = lrs.ExponentialLR(optimizer, gamma)
+    scheduler = lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #lrs.ExponentialLR(optimizer, gamma)
     for epoch in range(1, args.epochs + 1):
         # if args.lra:
-        scheduler.step()
         train_epoch(epoch, args, model, plength, chunk_size, train_loader, optimizer, rank)
         with lock:
           val.value += 1
         if rank == 0:
           result[epoch-1][0] = get_lr(optimizer)
+        tl, a = test_epoch(model, test_loader)
+        scheduler.step(tl)
 
-def test(args, model, results, val, lock):
+def test(args, model, results, test_loader, val, lock):
     torch.manual_seed(args.seed)
 
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
-
-    # l,a = test_epoch(model, test_loader)
+     # l,a = test_epoch(model, test_loader)
     counter = 0
     np = args.num_processes
     while counter < args.epochs:
