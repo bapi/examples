@@ -7,9 +7,10 @@ from torchvision import datasets, transforms
 
 from mysgd import StochasticGD
 
-def train(rank, args, model, result, val, lock):
+def train(rank, args, model, result, barrier, lock):
     torch.manual_seed(args.seed + rank)
-
+    gamma = 0.9 + torch.rand(1).item()/10
+    
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=True, download=True,
                     transform=transforms.Compose([
@@ -22,17 +23,17 @@ def train(rank, args, model, result, val, lock):
       optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     else:
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = lrs.ExponentialLR(optimizer, gamma = 0.95)
+    scheduler = lrs.ExponentialLR(optimizer, gamma)
     for epoch in range(1, args.epochs + 1):
         if args.lra:
           scheduler.step()
         train_epoch(epoch, args, model, train_loader, optimizer)
         with lock:
-          val.value += 1
-        if rank == 0:
-          result[epoch-1][0] = get_lr(optimizer)
+          barrier[rank] += 1
+        # if rank == 0:
+        result[epoch-1][rank] = get_lr(optimizer)
 
-def test(args, model, results, val, lock):
+def test(args, model, results, barrier, lock):
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(
@@ -44,17 +45,27 @@ def test(args, model, results, val, lock):
 
     # l,a = test_epoch(model, test_loader)
     counter = 0
-    np = args.num_processes
+    l_counter = 0
+    already_checked = torch.zeros(len(barrier))
+    # np = args.num_processes
     while counter < args.epochs:
-      if val.value == np:
-        with lock:
-          val.value -= np
-        l,a = test_epoch(model, test_loader)
-        print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
-        results[counter][1] = l
-        results[counter][2] = a
-        counter += 1
-      # print("value and counter = " + str(val.value) + " " + str(counter))
+        for i in range(len(barrier)):
+            if barrier[i] > 0 and already_checked[i] == 0:
+                with lock:
+                    barrier[i] -= 1
+                l_counter += 1
+                already_checked[i] = 1
+
+        # print("l_counter and counter = " + str(l_counter) + " " + str(counter))      
+
+        if l_counter == args.num_processes:
+            l,a = test_epoch(model, test_loader)
+            print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
+            results[counter][args.num_processes] = l
+            results[counter][args.num_processes+1] = a
+            counter += 1
+            l_counter = 0
+            already_checked = torch.zeros(len(barrier))
   
 
 

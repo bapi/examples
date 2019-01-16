@@ -4,7 +4,8 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.multiprocessing import Process, Value, Lock, Queue
+from torchvision import datasets, transforms
+from torch.multiprocessing import Process, Value, Lock, Queue, Array
 
 from train import train, test
 
@@ -12,7 +13,7 @@ from train import train, test
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
-parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
+parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
                     help='input batch size for testing (default: 1000)')
 parser.add_argument('--epochs', type=int, default=2, metavar='N',
                     help='number of epochs to train (default: 10)')
@@ -59,9 +60,10 @@ if __name__ == '__main__':
     
     val = Value('i', 0)
     lock = Lock()
-    results = torch.zeros(args.epochs,3)
+    results = torch.zeros(args.epochs,2+args.num_processes)
     results.share_memory_()
-    
+    barrier = Array('i', range(args.num_processes))
+   
     if args.usemysgd:
       f = open('hogwild'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
     else:
@@ -70,16 +72,24 @@ if __name__ == '__main__':
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('./data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+
+   
     start = time.time()
     
     processes = []
     for rank in range(args.num_processes):
-        p = Process(target=train, args=(rank, args, model, results, val, lock))
+        p = Process(target=train, args=(rank, args, model, results, barrier, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, val, lock))
+    p = Process(target=test, args=(args, model, results, barrier, lock))
     p.start()
     processes.append(p)
     for p in processes:
@@ -90,10 +100,11 @@ if __name__ == '__main__':
     
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
-      f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.6f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\n")
-      
+      for j in range(args.num_processes):
+        f.write(str('%.6f'%results[i][j].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes + 1].item())+"\n")
+    
 
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
