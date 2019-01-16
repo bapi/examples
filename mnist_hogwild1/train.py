@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 
 from mysgd import BATCH_PARTITIONED_SGD
 
-def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, val, lock):
+def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, lock):
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
@@ -34,7 +34,7 @@ def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, 
         tl, a = test_epoch(model, test_loader, False)
         scheduler.step(tl)
 
-def test(args, model, results, test_loader, barrier, val, lock):
+def test(args, model, results, test_loader, barrier, lock):
     torch.manual_seed(args.seed)
 
      # l,a = test_epoch(model, test_loader)

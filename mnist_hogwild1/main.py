@@ -102,12 +102,12 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, test_loader, barrier, val, lock))
+        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, test_loader, barrier, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, test_loader, barrier, val, lock))
+    p = Process(target=test, args=(args, model, results, test_loader, barrier, lock))
     p.start()
     processes.append(p)
     for p in processes:
