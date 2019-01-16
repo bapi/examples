@@ -39,21 +39,22 @@ def test(args, model, results, test_loader, barrier, val, lock):
 
      # l,a = test_epoch(model, test_loader)
     counter = 0
-    # l_counter = 0
+    l_counter = 0
     # np = args.num_processes
     while counter < args.epochs:
         for i in range(len(barrier)):
             if barrier[i] > 0:
                 with lock:
                     barrier[i] -= 1
+                l_counter += 1
                 
-        # if l_counter == args.num_processes:
-        l,a = test_epoch(model, test_loader, True)
-        print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
-        results[counter][1] = l
-        results[counter][2] = a
-        counter += 1
-            # l_counter = 0
+        if l_counter == args.num_processes:
+            l,a = test_epoch(model, test_loader, True)
+            print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
+            results[counter][1] = l
+            results[counter][2] = a
+            counter += 1
+            l_counter = 0
       # print("value and counter = " + str(val.value) + " " + str(counter))
   
 
