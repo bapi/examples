@@ -23,7 +23,7 @@ def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, 
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # else:
     #   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #lrs.ExponentialLR(optimizer, gamma)
+    scheduler = lrs.ExponentialLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     for epoch in range(1, args.epochs + 1):
         # if args.lra:
         train_epoch(epoch, args, model, plength, chunk_size, train_loader, optimizer, rank)
