@@ -154,9 +154,9 @@ def main():
     results.share_memory_()
     
     if args.usemysgd:
-      f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'_usebackprop=True.txt',"w")
+      f = open('stochastic_gradient_descent'+'_LR='+str(args.lr)+'_usebackprop=True.txt',"w")
     else:
-      f = open('stochastic_gradient_descent'+'_batch_size='+str(args.batch_size)+'_usebackprop=False.txt',"w")
+      f = open('stochastic_gradient_descent'+'_lr='+str(args.lr)+'_usebackprop=False.txt',"w")
 
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))

@@ -84,9 +84,9 @@ if __name__ == '__main__':
     # barrier.share_memory_()
     
     if args.usemysgd:
-      f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
+      f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
     else:
-      f = open('hogwild_SCD'+'_batch_size='+str(args.batch_size)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
+      f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
     print('Batch-size = {}'.format(args.batch_size))
     f.write('Batch-size = {}'.format(args.batch_size))
