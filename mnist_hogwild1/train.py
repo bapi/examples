@@ -26,13 +26,13 @@ def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, 
     scheduler = lrs.ExponentialLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     for epoch in range(1, args.epochs + 1):
         # if args.lra:
+        scheduler.step()
         train_epoch(epoch, args, model, plength, chunk_size, train_loader, optimizer, rank)
         with lock:
           barrier[rank] += 1
         # if rank == 0:
         result[epoch-1][rank] = get_lr(optimizer)
         tl, a = test_epoch(model, test_loader, False)
-        scheduler.step(tl)
 
 def test(args, model, results, test_loader, barrier, lock):
     torch.manual_seed(args.seed)
