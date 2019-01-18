@@ -1,5 +1,7 @@
 from __future__ import print_function
 import argparse
+import multiprocessing
+import os
 import time 
 import torch
 import torch.nn as nn
@@ -166,9 +168,11 @@ def main():
     # for rank in range(1):
     p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
     # We first train the model across `num_processes` processes
+    os.system("taskset -p -c %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
     p.start()
     processes.append(p)
     p = Process(target=test, args=(args, model, device, test_loader, results, val, lock))
+    os.system("taskset -p -c %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
     p.start()
     processes.append(p)
     for p in processes:
