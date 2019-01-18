@@ -72,6 +72,8 @@ def test_epoch(args, model, device, test_loader):
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, scheduler, results, val, lock):
+  os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
+    
   for epoch in range(1, args.epochs + 1):
         scheduler.step()
         lerning_rate = train_epoch(args, model, device, train_loader, optimizer, epoch)
@@ -81,6 +83,7 @@ def train(args, model, device, train_loader, optimizer, scheduler, results, val,
 
 
 def test(args, model, device, test_loader, results, val, lock):
+  os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
   counter = 0
   while counter < args.epochs:
     if val.value > 0:
@@ -168,11 +171,9 @@ def main():
     # for rank in range(1):
     p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
     # We first train the model across `num_processes` processes
-    os.system("taskset -p -c %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
     p.start()
     processes.append(p)
     p = Process(target=test, args=(args, model, device, test_loader, results, val, lock))
-    os.system("taskset -p -c %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
     p.start()
     processes.append(p)
     for p in processes:

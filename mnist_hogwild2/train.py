@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import torch
 import torch.optim as optim
@@ -8,6 +9,7 @@ from torchvision import datasets, transforms
 from mysgd import StochasticGD
 
 def train(rank, args, model, result, barrier, lock):
+    os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
@@ -34,6 +36,7 @@ def train(rank, args, model, result, barrier, lock):
         result[epoch-1][rank] = get_lr(optimizer)
 
 def test(args, model, results, barrier, lock):
+    os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(
