@@ -7,8 +7,9 @@ import torch.nn.functional as F
 from torchvision import datasets, transforms
 
 from mysgd import BATCH_PARTITIONED_SGD
+from myscheduler import MyLR
 
-def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, lock):
+def train(rank, args, model, result, test_loader, barrier, lock, rankstart, rankstop):
     os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
@@ -25,11 +26,11 @@ def train(rank, args, model, plength, chunk_size, result, test_loader, barrier, 
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # else:
     #   optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    scheduler = lrs.ExponentialLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
+    scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     for epoch in range(1, args.epochs + 1):
         # if args.lra:
         scheduler.step()
-        train_epoch(epoch, args, model, plength, chunk_size, train_loader, optimizer, rank)
+        train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
         with lock:
           barrier[rank] += 1
         # if rank == 0:
@@ -65,7 +66,7 @@ def test(args, model, results, test_loader, barrier, lock):
             already_checked = torch.zeros(len(barrier))
 
 
-def train_epoch(epoch, args, model, plength, chunk_size, data_loader, optimizer, rank):
+def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop):
     model.train()
     pid = os.getpid()
     for batch_idx, (data, target) in enumerate(data_loader):
@@ -76,7 +77,7 @@ def train_epoch(epoch, args, model, plength, chunk_size, data_loader, optimizer,
           loss.backward()
         #   optimizer.step()
         # else:#rank, l, plength, numproc, chunk_size, usemysgd, 
-        optimizer.step(rank, loss, plength, args.num_processes, chunk_size, args.usemysgd)
+        optimizer.step(loss, rankstart, rankstop, args.usemysgd)
         if batch_idx % args.log_interval == 0:
             print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 pid, epoch, batch_idx * len(data), len(data_loader.dataset),

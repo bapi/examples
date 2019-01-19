@@ -74,11 +74,19 @@ if __name__ == '__main__':
     plength = 0
     for p in model.parameters():
       plength+=p.numel()
-    chunk_size = int(plength/args.num_processes)
-      
+
+    numproc = args.num_processes
+    chunk_size = int(plength/numproc)
+    rankings = torch.zeros(numproc, 2)
+    for rank in range(args.num_processes):
+        rankings[rank][0] = rank*chunk_size
+        rankings[rank][1] = (rank+1)*chunk_size - 1
+    if rank == numproc - 1:
+        rankings[rank][1] = plength - 1
+    
     val = Value('i', 0)
     lock = Lock()
-    results = torch.zeros(args.epochs,2+args.num_processes)
+    results = torch.zeros(args.epochs,2+numproc)
     results.share_memory_()
     barrier = Array('i', range(args.num_processes))
     # barrier.share_memory_()
@@ -97,12 +105,12 @@ if __name__ == '__main__':
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
         batch_size=args.test_batch_size, shuffle=True, num_workers=1)
-
+        
    
     start = time.time()
     processes = []
-    for rank in range(args.num_processes):
-        p = Process(target=train, args=(rank, args, model, plength, chunk_size, results, test_loader, barrier, lock))
+    for rank in range(numproc):
+        p = Process(target=train, args=(rank, args, model, results, test_loader, barrier, lock, rankings[rank][0], rankings[rank][1]))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)

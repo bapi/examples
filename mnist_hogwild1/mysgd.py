@@ -71,7 +71,7 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
             group.setdefault('nesterov', False)
           
 
-    def step(self, rank, l, plength, numproc, chunk_size, usemysgd, closure=None):
+    def step(self, l, rankstart, rankstop, usemysgd, closure=None):
         """Performs a single optimization step.
 
         Arguments:
@@ -81,10 +81,6 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
-        rankstart = rank*chunk_size
-        rankstop = (rank+1)*chunk_size - 1
-        if rank == numproc - 1:
-          rankstop = plength - 1
                 
         for group in self.param_groups:
             weight_decay = group['weight_decay']
