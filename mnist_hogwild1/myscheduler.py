@@ -165,9 +165,15 @@ class MyLR(_LRScheduler):
                 for base_lr in self.base_lrs]
 
     def step(self, epoch=None):
-        return super().step(epoch=epoch)
+        # return super().step(epoch=epoch)
         self.gamma = self.last_gamma * (1-self.last_gamma)
         self.last_gamma = self.gamma
+        if epoch is None:
+            epoch = self.last_epoch + 1
+        self.last_epoch = epoch
+        for param_group, lr in zip(self.optimizer.param_groups, self.get_lr()):
+            param_group['lr'] = lr
+
         
 
 class CosineAnnealingLR(_LRScheduler):
