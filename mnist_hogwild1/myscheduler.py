@@ -161,7 +161,7 @@ class MyLR(_LRScheduler):
         super(MyLR, self).__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        return [base_lr * self.gamma
+        return [base_lr * self.gamma / math.sqrt(self.last_epoch + 1)
                 for base_lr in self.base_lrs]
 
     def step(self, epoch=None):
