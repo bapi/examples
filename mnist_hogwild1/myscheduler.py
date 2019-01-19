@@ -166,8 +166,8 @@ class MyLR(_LRScheduler):
 
     def step(self, epoch=None):
         # return super().step(epoch=epoch)
-        self.gamma = self.last_gamma * (1-self.last_gamma)
-        self.last_gamma = self.gamma
+        # self.gamma = self.last_gamma * (1-self.last_gamma)
+        # self.last_gamma = self.gamma
         if epoch is None:
             epoch = self.last_epoch + 1
         self.last_epoch = epoch
