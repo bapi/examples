@@ -57,7 +57,7 @@ def test(args, model, results, test_loader, barrier, istrain):
             else:
                 l,a = test_epoch(model, test_loader, True)
                 print("Epoch: "+ str(count) + " Test_loss= " + str('%.6f'%l) + 
-                + " Test_accuracy= " + str('%.2f'%a) + "\n")
+                " Test_accuracy= " + str('%.2f'%a) + "\n")
                 results[count][args.num_processes] = l
                 results[count][args.num_processes+1] = a
             
