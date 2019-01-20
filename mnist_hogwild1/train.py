@@ -43,6 +43,7 @@ def test(args, model, results, test_loader, barrier, istrain):
         for i in range(len(barrier)):
             if barrier[i] <= counter[i]:
                 allincremented = False
+                break
 
         # print("l_counter and counter = " + str(l_counter) + " " + str(counter))      
 

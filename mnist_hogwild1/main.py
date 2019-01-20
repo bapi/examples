@@ -95,7 +95,6 @@ if __name__ == '__main__':
 
     print('Batch-size = {}'.format(args.batch_size))
     f.write('Batch-size = {}'.format(args.batch_size))
-    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=True, download=True,
                     transform=transforms.Compose([
@@ -141,12 +140,15 @@ if __name__ == '__main__':
     train_end = time.time()
     train_time = (train_end - start)
     
+    f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
       for j in range(args.num_processes):
         f.write(str('%.6f'%results[i][j].item())+"\t")
       f.write(str('%.6f'%results[i][args.num_processes].item())+"\t")
-      f.write(str('%.6f'%results[i][args.num_processes + 1].item())+"\n")
+      f.write(str('%.6f'%results[i][args.num_processes+1].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes+2].item())+"\t")
+      f.write(str('%.6f'%results[i][args.num_processes+3].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 
