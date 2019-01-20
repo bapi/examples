@@ -10,7 +10,7 @@ from mysgd import BATCH_PARTITIONED_SGD
 from myscheduler import MyLR
 
 def train(rank, args, model, result, train_loader, barrier, rankstart, rankstop):
-    os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
+    # os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
@@ -29,14 +29,14 @@ def train(rank, args, model, result, train_loader, barrier, rankstart, rankstop)
         result[epoch-1][rank] = get_lr(optimizer)
 
 def test(args, model, results, test_loader, barrier, istrain):
-    if istrain:
-        os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
-    else:
-        os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
+    # if istrain:
+    #     os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
+    # else:
+    #     os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
-    count = counter[0].item()
+    count = 0
             
     while count < args.epochs:
         allincremented = True
@@ -60,10 +60,9 @@ def test(args, model, results, test_loader, barrier, istrain):
                 " Test_accuracy= " + str('%.2f'%a) + "\n")
                 results[count][args.num_processes] = l
                 results[count][args.num_processes+1] = a
-            
+            count +=1
             for i in range(len(barrier)):
-                counter[i] +=1
-            count = counter[0].item()
+                counter[i] +=count
             
 
             

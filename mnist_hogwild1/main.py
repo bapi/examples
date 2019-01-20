@@ -31,22 +31,6 @@ parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
 parser.add_argument('--lra', type=bool, default=True, metavar='LR',
                         help='Whether to use adaptable learning rate')
 
-class Counter(object):
-    def __init__(self, initval=0):
-        self.val = Value('i', initval)
-        self.lock = Lock()
-
-    def increment(self):
-        with self.lock:
-            self.val.value += 1
-
-    def value(self):
-        with self.lock:
-            return self.val.value
-def func(counter):
-    for i in range(50):
-        time.sleep(0.01)
-        counter.increment()
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -86,8 +70,8 @@ if __name__ == '__main__':
     
     results = torch.zeros(args.epochs,4+numproc)
     results.share_memory_()
-    barrier = Array('i', range(args.num_processes))
-    
+    counter = torch.zeros([numproc], dtype=torch.int32)
+    counter.share_memory_()
     if args.usemysgd:
       f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
     else:
@@ -96,7 +80,7 @@ if __name__ == '__main__':
     print('Batch-size = {}'.format(args.batch_size))
     f.write('Batch-size = {}'.format(args.batch_size))
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
+        datasets.MNIST('../data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -104,7 +88,7 @@ if __name__ == '__main__':
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
     train_test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
+        datasets.MNIST('../data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -112,7 +96,7 @@ if __name__ == '__main__':
         batch_size=args.test_batch_size, shuffle=True, num_workers=1)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=False, transform=transforms.Compose([
+        datasets.MNIST('../data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
@@ -123,15 +107,14 @@ if __name__ == '__main__':
     processes = []
     for rank in range(numproc):
         p = Process(target=train, args=(rank, args, model, results, 
-        train_loader, barrier, rankings[rank][0], rankings[rank][1]))
-        # We first train the model across `num_processes` processes
+        train_loader, counter, rankings[rank][0], rankings[rank][1]))
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, train_test_loader, barrier, True))
+    p = Process(target=test, args=(args, model, results, train_test_loader, counter, True))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, results, test_loader, barrier, False))
+    p = Process(target=test, args=(args, model, results, test_loader, counter, False))
     p.start()
     processes.append(p)
     for p in processes:
@@ -146,9 +129,9 @@ if __name__ == '__main__':
       for j in range(args.num_processes):
         f.write(str('%.6f'%results[i][j].item())+"\t")
       f.write(str('%.6f'%results[i][args.num_processes].item())+"\t")
-      f.write(str('%.6f'%results[i][args.num_processes+1].item())+"\t")
+      f.write(str('%.2f'%results[i][args.num_processes+1].item())+"\t")
       f.write(str('%.6f'%results[i][args.num_processes+2].item())+"\t")
-      f.write(str('%.6f'%results[i][args.num_processes+3].item())+"\n")
+      f.write(str('%.2f'%results[i][args.num_processes+3].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 
