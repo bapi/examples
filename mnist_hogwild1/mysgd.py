@@ -72,6 +72,9 @@ class BATCH_PARTITIONED_SGD(torch.optim.Optimizer):
           
 
     def step(self, l, rankstart, rankstop, usemysgd, closure=None):
+        # print(rankstart)
+        # print(rankstop)
+        # print(usemysgd)
         """Performs a single optimization step.
 
         Arguments:

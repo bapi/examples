@@ -9,7 +9,7 @@ from torchvision import datasets, transforms
 from mysgd import BATCH_PARTITIONED_SGD
 from myscheduler import MyLR
 
-def train(rank, args, model, result, train_loader, test_loader, barrier, lock, rankstart, rankstop):
+def train(rank, args, model, result, train_loader, barrier, rankstart, rankstop):
     os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
@@ -24,11 +24,9 @@ def train(rank, args, model, result, train_loader, test_loader, barrier, lock, r
         # if args.lra:
         scheduler.step()
         train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
-        with lock:
-          barrier[rank] += 1
+        barrier[rank] += 1
         # if rank == 0:
         result[epoch-1][rank] = get_lr(optimizer)
-        tl, a = test_epoch(model, test_loader, False)
 
 def test(args, model, results, test_loader, barrier, istrain):
     if istrain:
@@ -38,8 +36,9 @@ def test(args, model, results, test_loader, barrier, istrain):
     torch.manual_seed(args.seed)
 
     counter = torch.zeros(len(barrier))
-    
-    while counter < args.epochs:
+    count = int(counter[0].item())
+            
+    while count < args.epochs:
         allincremented = True
         for i in range(len(barrier)):
             if barrier[i] <= counter[i]:
@@ -52,17 +51,19 @@ def test(args, model, results, test_loader, barrier, istrain):
                 l,a = test_epoch(model, test_loader, True)
                 print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
                 " Train_accuracy= " + str('%.2f'%a) + "\n")
-                results[counter[0]][args.num_processes+2] = l
-                results[counter[0]][args.num_processes+3] = a
+                results[count][args.num_processes+2] = l
+                results[count][args.num_processes+3] = a
             else:
                 l,a = test_epoch(model, test_loader, True)
                 print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + 
                 + " Test_accuracy= " + str('%.2f'%a) + "\n")
-                results[counter[0]][args.num_processes] = l
-                results[counter[0]][args.num_processes+1] = a
+                results[count][args.num_processes] = l
+                results[count][args.num_processes+1] = a
             
             for i in range(len(barrier)):
                 counter[i] +=1
+            count = int(counter[0].item())
+            
 
             
 

@@ -4,7 +4,7 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.multiprocessing import Process, Value, Lock, Queue, Array
+from torch.multiprocessing import Process, Array
 from torchvision import datasets, transforms
 from train import train, test
 
@@ -77,19 +77,16 @@ if __name__ == '__main__':
 
     numproc = args.num_processes
     chunk_size = int(plength/numproc)
-    rankings = torch.zeros(numproc, 2)
+    rankings = torch.zeros([numproc, 2], dtype=torch.long)
     for rank in range(args.num_processes):
         rankings[rank][0] = rank*chunk_size
         rankings[rank][1] = (rank+1)*chunk_size - 1
     if rank == numproc - 1:
         rankings[rank][1] = plength - 1
     
-    val = Value('i', 0)
-    lock = Lock()
     results = torch.zeros(args.epochs,2+numproc)
     results.share_memory_()
     barrier = Array('i', range(args.num_processes))
-    # barrier.share_memory_()
     
     if args.usemysgd:
       f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
@@ -127,15 +124,15 @@ if __name__ == '__main__':
     processes = []
     for rank in range(numproc):
         p = Process(target=train, args=(rank, args, model, results, 
-        train_loader, test_loader, barrier, rankings[rank][0], rankings[rank][1]))
+        train_loader, barrier, rankings[rank][0], rankings[rank][1]))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, train_test_loader, barrier))
+    p = Process(target=test, args=(args, model, results, train_test_loader, barrier, True))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, results, test_loader, barrier))
+    p = Process(target=test, args=(args, model, results, test_loader, barrier, False))
     p.start()
     processes.append(p)
     for p in processes:
