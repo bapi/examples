@@ -66,33 +66,46 @@ def test_epoch(args, model, device, test_loader):
             correct += pred.eq(target.view_as(pred)).sum().item()
 
     test_loss = (test_loss*10000) / len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
+    accuracy = correct#100. * correct / len(test_loader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
-def train(args, model, device, train_loader, optimizer, scheduler, results, val, lock):
+def train(args, model, device, train_loader, optimizer, results, val):
   os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
     
   for epoch in range(1, args.epochs + 1):
-        scheduler.step()
+        # scheduler.step()
         lerning_rate = train_epoch(args, model, device, train_loader, optimizer, epoch)
-        with lock:
-          val.value += 1
+        val.value += 1
         results[epoch - 1][0] = lerning_rate
 
 
-def test(args, model, device, test_loader, results, val, lock):
+def test_testdata(args, model, device, test_loader, results, val):
   os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
   counter = 0
   while counter < args.epochs:
-    if val.value > 0:
-      with lock:
-        val.value -= 1
+    if val.value > counter:
       l,a = test_epoch(args, model, device, test_loader)
-      print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
+      print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
+      + " Test_accuracy= " + str('%.2f'%a) + "\n")
       results[counter][1] = l
       results[counter][2] = a
+      # f.write(str('%.6f'%l)+"\n")
+      counter += 1
+    # print("still waiting for update!")
+
+
+def test_traindata(args, model, device, train_loader, results, val):
+  os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
+  counter = 0
+  while counter < args.epochs:
+    if val.value > counter:
+      l,a = test_epoch(args, model, device, train_loader)
+      print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+      " Train_accuracy= " + str('%.2f'%a) + "\n")
+      results[counter][3] = l
+      results[counter][4] = a
       # f.write(str('%.6f'%l)+"\n")
       counter += 1
     # print("still waiting for update!")
@@ -155,7 +168,7 @@ def main():
     scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = Value('i', 0)
     lock = Lock()
-    results = torch.zeros(args.epochs,3)
+    results = torch.zeros(args.epochs,5)
     results.share_memory_()
     
     if args.usemysgd:
@@ -165,27 +178,31 @@ def main():
 
     print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     start = time.time()
     processes = []
-    # for rank in range(1):
-    p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
-    # We first train the model across `num_processes` processes
+    p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, device, test_loader, results, val, lock))
+    p = Process(target=test_testdata, args=(args, model, device, train_loader, results, val))
     p.start()
     processes.append(p)
+    # p = Process(target=test_traindata, args=(args, model, device, train_loader, results, val))
+    # p.start()
+    # processes.append(p)
     for p in processes:
         p.join()
     train_end = time.time()
     train_time = (train_end - start)
     
+    f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
+    
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
       f.write(str('%.6f'%results[i][0].item())+"\t")
       f.write(str('%.6f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\n")
+      f.write(str('%.2f'%results[i][2].item())+"\t")
+      f.write(str('%.6f'%results[i][3].item())+"\t")
+      f.write(str('%.2f'%results[i][4].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 
