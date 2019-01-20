@@ -176,7 +176,7 @@ def main():
     p1 = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
     p1.start()
     processes.append(p1)
-    p2 = Process(target=test, args=(args, model, device, test_loader, results, val, True))
+    p2 = Process(target=test, args=(args, model, device, test_loader, results, val, False))
     p2.start()
     processes.append(p2)
     # p = Process(target=test_traindata, args=(args, model, device, train_loader, results, val))
