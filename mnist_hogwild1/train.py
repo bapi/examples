@@ -9,19 +9,12 @@ from torchvision import datasets, transforms
 from mysgd import BATCH_PARTITIONED_SGD
 from myscheduler import MyLR
 
-def train(rank, args, model, result, test_loader, barrier, lock, rankstart, rankstop):
+def train(rank, args, model, result, train_loader, test_loader, barrier, lock, rankstart, rankstop):
     os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
-    train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
-                    transform=transforms.Compose([
-                        transforms.ToTensor(),
-                        transforms.Normalize((0.1307,), (0.3081,))
-                    ])),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
-
+    
     # if args.usemysgd:
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # else:
@@ -37,34 +30,41 @@ def train(rank, args, model, result, test_loader, barrier, lock, rankstart, rank
         result[epoch-1][rank] = get_lr(optimizer)
         tl, a = test_epoch(model, test_loader, False)
 
-def test(args, model, results, test_loader, barrier, lock):
-    os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
+def test(args, model, results, test_loader, barrier, istrain):
+    if istrain:
+        os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
+    else:
+        os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
-     # l,a = test_epoch(model, test_loader)
-    counter = 0
-    l_counter = 0
-    already_checked = torch.zeros(len(barrier))
-    # np = args.num_processes
+    counter = torch.zeros(len(barrier))
+    
     while counter < args.epochs:
+        allincremented = True
         for i in range(len(barrier)):
-            if barrier[i] > 0 and already_checked[i] == 0:
-                with lock:
-                    barrier[i] -= 1
-                l_counter += 1
-                already_checked[i] = 1
+            if barrier[i] <= counter[i]:
+                allincremented = False
 
         # print("l_counter and counter = " + str(l_counter) + " " + str(counter))      
 
-        if l_counter == args.num_processes:
-            l,a = test_epoch(model, test_loader, True)
-            print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
-            results[counter][args.num_processes] = l
-            results[counter][args.num_processes+1] = a
-            counter += 1
-            l_counter = 0
-            already_checked = torch.zeros(len(barrier))
+        if allincremented:
+            if istrain:
+                l,a = test_epoch(model, test_loader, True)
+                print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+                " Train_accuracy= " + str('%.2f'%a) + "\n")
+                results[counter[0]][args.num_processes+2] = l
+                results[counter[0]][args.num_processes+3] = a
+            else:
+                l,a = test_epoch(model, test_loader, True)
+                print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + 
+                + " Test_accuracy= " + str('%.2f'%a) + "\n")
+                results[counter[0]][args.num_processes] = l
+                results[counter[0]][args.num_processes+1] = a
+            
+            for i in range(len(barrier)):
+                counter[i] +=1
 
+            
 
 def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop):
     model.train()
@@ -97,7 +97,7 @@ def test_epoch(model, data_loader, istesting):
             correct += pred.eq(target).sum().item()
 
     test_loss = (test_loss*10000) / len(data_loader.dataset)
-    accuracy = 100. * correct / len(data_loader.dataset)
+    accuracy = correct#100. * correct / len(data_loader.dataset)
     if istesting:
         print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
         test_loss, correct, len(data_loader.dataset),accuracy))

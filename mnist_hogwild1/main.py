@@ -99,6 +99,22 @@ if __name__ == '__main__':
     print('Batch-size = {}'.format(args.batch_size))
     f.write('Batch-size = {}'.format(args.batch_size))
     f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
+    train_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('./data', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])),
+        batch_size=args.batch_size, shuffle=True, num_workers=1)
+
+    train_test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('./data', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])),
+        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
@@ -110,12 +126,16 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(numproc):
-        p = Process(target=train, args=(rank, args, model, results, test_loader, barrier, lock, rankings[rank][0], rankings[rank][1]))
+        p = Process(target=train, args=(rank, args, model, results, 
+        train_loader, test_loader, barrier, rankings[rank][0], rankings[rank][1]))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, test_loader, barrier, lock))
+    p = Process(target=test, args=(args, model, results, train_test_loader, barrier))
+    p.start()
+    processes.append(p)
+    p = Process(target=test, args=(args, model, results, test_loader, barrier))
     p.start()
     processes.append(p)
     for p in processes:
