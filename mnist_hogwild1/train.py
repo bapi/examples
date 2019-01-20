@@ -35,7 +35,7 @@ def test(args, model, results, test_loader, barrier, istrain):
         os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
-    counter = torch.zeros([len(barrier)], dtype=int)
+    counter = torch.zeros([len(barrier)], dtype=torch.int32)
     count = counter[0]
             
     while count < args.epochs:
