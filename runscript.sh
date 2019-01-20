@@ -1,5 +1,5 @@
 #!/bin/bash
-# cd mnist1/
+cd mnist1/
 # python main.py --lr 0.1 --epochs 80 --usemysgd 1 --test-batch-size 2000 2>&1 | tee log1
 cd ../mnist_hogwild1/
 # python main.py --lr 0.1 --epochs 80 --usemysgd 1 --test-batch-size 2000 --num-processes 1 2>&1 | tee log1
