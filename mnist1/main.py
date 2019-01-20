@@ -64,14 +64,14 @@ def test_epoch(args, model, device, test_loader):
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
-            print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{}\n'.format(
-            test_loss, correct, len(test_loader.dataset)))
+            # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{}\n'.format(
+            # test_loss, correct, len(test_loader.dataset)))
     
 
     test_loss = (test_loss*10000) / len(test_loader.dataset)
     accuracy = correct#100. * correct / len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), accuracy))
+    # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    #     test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, results, val):
@@ -179,8 +179,8 @@ def main():
     else:
       f = open('stochastic_gradient_descent'+'_lr='+str(args.lr)+'_usebackprop=False.txt',"w")
 
-    print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
     p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
