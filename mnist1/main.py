@@ -85,23 +85,26 @@ def train(args, model, device, train_loader, optimizer, results, val):
 
 
 def test(args, model, device, test_loader, results, val, istrain):
-  os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-  counter = 0
-  while counter < args.epochs:
-    if val.value > counter:
-      l,a = test_epoch(args, model, device, test_loader)
-      if istrain:
-        print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
-        " Train_accuracy= " + str('%.2f'%a) + "\n")
-        results[counter][3] = l
-        results[counter][4] = a
-      else:
-        print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
-        + " Test_accuracy= " + str('%.2f'%a) + "\n")
-        results[counter][1] = l
-        results[counter][2] = a
-      counter += 1
-    # print("still waiting for update!")
+    if istrain:
+        os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
+    else:
+        os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
+    counter = 0
+    while counter < args.epochs:
+        if val.value > counter:
+            l,a = test_epoch(args, model, device, test_loader)
+            if istrain:
+                print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+                " Train_accuracy= " + str('%.2f'%a) + "\n")
+                results[counter][3] = l
+                results[counter][4] = a
+            else:
+                print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
+                + " Test_accuracy= " + str('%.2f'%a) + "\n")
+                results[counter][1] = l
+                results[counter][2] = a
+        counter += 1
+        # print("still waiting for update!")
 
 def main():
     # Training settings
