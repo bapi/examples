@@ -35,8 +35,8 @@ def test(args, model, results, test_loader, barrier, istrain):
         os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
-    counter = torch.zeros(len(barrier))
-    count = int(counter[0].item())
+    counter = torch.zeros([len(barrier)], dtype=int)
+    count = counter[0]
             
     while count < args.epochs:
         allincremented = True
@@ -49,20 +49,20 @@ def test(args, model, results, test_loader, barrier, istrain):
         if allincremented:
             if istrain:
                 l,a = test_epoch(model, test_loader, True)
-                print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+                print("Epoch: "+ str(count) + " Train_loss= " + str('%.6f'%l) + 
                 " Train_accuracy= " + str('%.2f'%a) + "\n")
                 results[count][args.num_processes+2] = l
                 results[count][args.num_processes+3] = a
             else:
                 l,a = test_epoch(model, test_loader, True)
-                print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + 
+                print("Epoch: "+ str(count) + " Test_loss= " + str('%.6f'%l) + 
                 + " Test_accuracy= " + str('%.2f'%a) + "\n")
                 results[count][args.num_processes] = l
                 results[count][args.num_processes+1] = a
             
             for i in range(len(barrier)):
                 counter[i] +=1
-            count = int(counter[0].item())
+            count = counter[0]
             
 
             

@@ -84,7 +84,7 @@ if __name__ == '__main__':
     if rank == numproc - 1:
         rankings[rank][1] = plength - 1
     
-    results = torch.zeros(args.epochs,2+numproc)
+    results = torch.zeros(args.epochs,4+numproc)
     results.share_memory_()
     barrier = Array('i', range(args.num_processes))
     
