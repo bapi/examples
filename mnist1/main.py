@@ -75,7 +75,7 @@ def test_epoch(args, model, device, test_loader):
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, results, val):
-  os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
+#   os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
     
   for epoch in range(1, args.epochs + 1):
         # scheduler.step()
@@ -85,10 +85,10 @@ def train(args, model, device, train_loader, optimizer, results, val):
 
 
 def test(args, model, device, test_loader, results, val, istrain):
-    if istrain:
-        os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-    else:
-        os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
+    # if istrain:
+    #     os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
+    # else:
+    #     os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
     counter = 0
     while counter < args.epochs:
         if val.value > counter:
