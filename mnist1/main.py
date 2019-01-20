@@ -111,7 +111,7 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, default=2000, metavar='N',
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train (default: 10)')
@@ -145,6 +145,13 @@ def main():
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
+    train_test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('./data', train=True, download=True,
+                       transform=transforms.Compose([
+                           transforms.ToTensor(),
+                           transforms.Normalize((0.1307,), (0.3081,))
+                       ])),
+        batch_size=args.test_batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
@@ -179,10 +186,10 @@ def main():
     p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, device, test_loader, results, val, False))
+    p = Process(target=test, args=(args, model, device, train_loader, results, val, True))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, device, train_loader, results, val, True))
+    p = Process(target=test, args=(args, model, device, test_loader, results, val, False))
     p.start()
     processes.append(p)
     for p in processes:
