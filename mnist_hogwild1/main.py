@@ -10,7 +10,7 @@ from train import train, test
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
                     help='input batch size for testing (default: 1000)')

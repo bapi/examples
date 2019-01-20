@@ -36,7 +36,7 @@ def test(args, model, results, test_loader, barrier, istrain):
     torch.manual_seed(args.seed)
 
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
-    count = counter[0]
+    count = counter[0].item()
             
     while count < args.epochs:
         allincremented = True
@@ -63,7 +63,7 @@ def test(args, model, results, test_loader, barrier, istrain):
             
             for i in range(len(barrier)):
                 counter[i] +=1
-            count = counter[0]
+            count = counter[0].item()
             
 
             
