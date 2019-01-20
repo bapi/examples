@@ -4,8 +4,9 @@ import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.multiprocessing import Process, Array
 from torchvision import datasets, transforms
+from torch.multiprocessing import Process, Value, Lock, Queue, Array
+
 from train import train, test
 
 # Training settings
@@ -14,7 +15,7 @@ parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
                     help='input batch size for testing (default: 1000)')
-parser.add_argument('--epochs', type=int, default=4, metavar='N',
+parser.add_argument('--epochs', type=int, default=2, metavar='N',
                     help='number of epochs to train (default: 10)')
 parser.add_argument('--lr', type=float, default=0.01, metavar='LR',
                     help='learning rate (default: 0.01)')
@@ -24,13 +25,13 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
-parser.add_argument('--num-processes', type=int, default=7, metavar='N',
+parser.add_argument('--num-processes', type=int, default=2, metavar='N',
                     help='how many training processes to use (default: 2)')
 parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
 parser.add_argument('--lra', type=bool, default=True, metavar='LR',
                         help='Whether to use adaptable learning rate')
-
+    
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
@@ -53,32 +54,26 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     torch.manual_seed(args.seed)
+
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
-    plength = 0
-    for p in model.parameters():
-      plength+=p.numel()
-
-    numproc = args.num_processes
-    chunk_size = int(plength/numproc)
-    rankings = torch.zeros([numproc, 2], dtype=torch.long)
-    for rank in range(args.num_processes):
-        rankings[rank][0] = rank*chunk_size
-        rankings[rank][1] = (rank+1)*chunk_size - 1
-    if rank == numproc - 1:
-        rankings[rank][1] = plength - 1
     
+    lock = Lock()
+    numproc = args.num_processes
     results = torch.zeros(args.epochs,4+numproc)
     results.share_memory_()
     counter = torch.zeros([numproc], dtype=torch.int32)
     counter.share_memory_()
+    
+   
     if args.usemysgd:
-      f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
+      f = open('hogwild'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=True.txt',"w")
     else:
-      f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
+      f = open('hogwild'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
-    # print('Batch-size = {}'.format(args.batch_size))
-    # f.write('Batch-size = {}'.format(args.batch_size))
+    # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('../data', train=True, download=True,
                     transform=transforms.Compose([
@@ -104,10 +99,11 @@ if __name__ == '__main__':
         
    
     start = time.time()
+    
     processes = []
-    for rank in range(numproc):
-        p = Process(target=train, args=(rank, args, model, results, 
-        train_loader, counter, rankings[rank][0], rankings[rank][1]))
+    for rank in range(args.num_processes):
+        p = Process(target=train, args=(rank, args, model, results, train_loader, counter, lock))
+        # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
     
@@ -119,7 +115,7 @@ if __name__ == '__main__':
     processes.append(p)
     for p in processes:
         p.join()
-    # train(0, args, model, plength, chunk_size, results, val, lock)
+
     train_end = time.time()
     train_time = (train_end - start)
     
@@ -132,7 +128,7 @@ if __name__ == '__main__':
       f.write(str('%.2f'%results[i][args.num_processes+1].item())+"\t")
       f.write(str('%.6f'%results[i][args.num_processes+2].item())+"\t")
       f.write(str('%.2f'%results[i][args.num_processes+3].item())+"\n")
-      
+    
 
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 

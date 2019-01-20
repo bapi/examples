@@ -99,9 +99,9 @@ def test_epoch(model, data_loader, istesting):
 
     test_loss = (test_loss*10000) / len(data_loader.dataset)
     accuracy = correct#100. * correct / len(data_loader.dataset)
-    if istesting:
-        print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(data_loader.dataset),accuracy))
+    # if istesting:
+    #     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    #     test_loss, correct, len(data_loader.dataset),accuracy))
     return (test_loss,accuracy)
 
 def get_lr(optimizer):

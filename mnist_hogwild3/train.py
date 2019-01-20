@@ -8,7 +8,7 @@ from torchvision import datasets, transforms
 
 from mysgd import StochasticGD
 
-def train(rank, args, model, result, train_loader, barrier):
+def train(rank, args, model, result, train_loader, barrier, lock):
     # os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     
@@ -17,7 +17,7 @@ def train(rank, args, model, result, train_loader, barrier):
     else:
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
-        train_epoch(epoch, args, model, train_loader, optimizer)
+        train_epoch(epoch, args, model, train_loader, optimizer, lock)
         barrier[rank] += 1
         result[epoch-1][rank] = get_lr(optimizer)
 
@@ -57,7 +57,7 @@ def test(args, model, results, test_loader, barrier, istrain):
         
 
 
-def train_epoch(epoch, args, model, data_loader, optimizer):
+def train_epoch(epoch, args, model, data_loader, optimizer, lock):
     model.train()
     pid = os.getpid()
     for batch_idx, (data, target) in enumerate(data_loader):
@@ -68,7 +68,7 @@ def train_epoch(epoch, args, model, data_loader, optimizer):
           loss.backward()
           optimizer.step()
         else:
-          optimizer.step(loss)
+          optimizer.step(loss, lock)
         if batch_idx % args.log_interval == 0:
             print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 pid, epoch, batch_idx * len(data), len(data_loader.dataset),

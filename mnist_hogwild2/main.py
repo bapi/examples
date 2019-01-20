@@ -11,7 +11,7 @@ from train import train, test
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=64, metavar='N',
+parser.add_argument('--batch-size', type=int, default=128, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
                     help='input batch size for testing (default: 1000)')
@@ -58,7 +58,6 @@ if __name__ == '__main__':
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     
-    val = Value('i', 0)
     lock = Lock()
     numproc = args.num_processes
     results = torch.zeros(args.epochs,4+numproc)
@@ -72,9 +71,9 @@ if __name__ == '__main__':
     else:
       f = open('hogwild'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
 
-    print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
+    # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
     train_loader = torch.utils.data.DataLoader(
         datasets.MNIST('../data', train=True, download=True,
                     transform=transforms.Compose([
