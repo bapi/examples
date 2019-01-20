@@ -81,16 +81,22 @@ def train(args, model, device, train_loader, optimizer, results, val):
         results[epoch - 1][0] = lerning_rate
 
 
-def test_testdata(args, model, device, test_loader, results, val):
+def test(args, model, device, test_loader, results, val, istrain):
   os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
   counter = 0
   while counter < args.epochs:
     if val.value > counter:
       l,a = test_epoch(args, model, device, test_loader)
-      print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
-      + " Test_accuracy= " + str('%.2f'%a) + "\n")
-      results[counter][1] = l
-      results[counter][2] = a
+      if istrain:
+        print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+        " Train_accuracy= " + str('%.2f'%a) + "\n")
+        results[counter][3] = l
+        results[counter][4] = a
+      else:
+        print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
+        + " Test_accuracy= " + str('%.2f'%a) + "\n")
+        results[counter][1] = l
+        results[counter][2] = a
       # f.write(str('%.6f'%l)+"\n")
       counter += 1
     # print("still waiting for update!")
@@ -164,10 +170,10 @@ def main():
       optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     else:
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    gamma = 0.9 + torch.rand(1).item()/10
-    scheduler = lrs.ExponentialLR(optimizer, gamma)
+    # gamma = 0.9 + torch.rand(1).item()/10
+    # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = Value('i', 0)
-    lock = Lock()
+    # lock = Lock()
     results = torch.zeros(args.epochs,5)
     results.share_memory_()
     
@@ -180,12 +186,12 @@ def main():
     f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
-    p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
-    p.start()
-    processes.append(p)
-    p = Process(target=test_testdata, args=(args, model, device, train_loader, results, val))
-    p.start()
-    processes.append(p)
+    p1 = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
+    p1.start()
+    processes.append(p1)
+    p2 = Process(target=test, args=(args, model, device, test_loader, results, val, False))
+    p2.start()
+    processes.append(p2)
     # p = Process(target=test_traindata, args=(args, model, device, train_loader, results, val))
     # p.start()
     # processes.append(p)
