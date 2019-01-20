@@ -103,7 +103,7 @@ def test(args, model, device, test_loader, results, val, istrain):
                 + " Test_accuracy= " + str('%.2f'%a) + "\n")
                 results[counter][1] = l
                 results[counter][2] = a
-        counter += 1
+            counter += 1
         # print("still waiting for update!")
 
 def main():
