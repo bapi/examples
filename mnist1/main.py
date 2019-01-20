@@ -64,6 +64,9 @@ def test_epoch(args, model, device, test_loader):
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
+            print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{}\n'.format(
+            test_loss, correct, len(test_loader.dataset)))
+    
 
     test_loss = (test_loss*10000) / len(test_loader.dataset)
     accuracy = correct#100. * correct / len(test_loader.dataset)
@@ -97,22 +100,6 @@ def test(args, model, device, test_loader, results, val, istrain):
         + " Test_accuracy= " + str('%.2f'%a) + "\n")
         results[counter][1] = l
         results[counter][2] = a
-      # f.write(str('%.6f'%l)+"\n")
-      counter += 1
-    # print("still waiting for update!")
-
-
-def test_traindata(args, model, device, train_loader, results, val):
-  os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-  counter = 0
-  while counter < args.epochs:
-    if val.value > counter:
-      l,a = test_epoch(args, model, device, train_loader)
-      print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
-      " Train_accuracy= " + str('%.2f'%a) + "\n")
-      results[counter][3] = l
-      results[counter][4] = a
-      # f.write(str('%.6f'%l)+"\n")
       counter += 1
     # print("still waiting for update!")
 
@@ -189,7 +176,7 @@ def main():
     p1 = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
     p1.start()
     processes.append(p1)
-    p2 = Process(target=test, args=(args, model, device, test_loader, results, val, False))
+    p2 = Process(target=test, args=(args, model, device, test_loader, results, val, True))
     p2.start()
     processes.append(p2)
     # p = Process(target=test_traindata, args=(args, model, device, train_loader, results, val))
