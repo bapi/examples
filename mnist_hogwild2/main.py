@@ -109,9 +109,9 @@ if __name__ == '__main__':
         p.start()
         processes.append(p)
     
-    p = Process(target=test, args=(args, model, results, train_test_loader, counter, True))
-    p.start()
-    processes.append(p)
+    # p = Process(target=test, args=(args, model, results, train_test_loader, counter, True))
+    # p.start()
+    # processes.append(p)
     p = Process(target=test, args=(args, model, results, test_loader, counter, False))
     p.start()
     processes.append(p)
