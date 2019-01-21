@@ -62,7 +62,7 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, results, counter))
+        p = mp.Process(target=train, args=(rank, args, model, counter))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
