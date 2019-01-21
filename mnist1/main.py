@@ -1,6 +1,6 @@
 from __future__ import print_function
 import argparse
-import multiprocessing
+import multiprocessing as mp
 import os
 import time 
 import torch
@@ -9,7 +9,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
 from torchvision import datasets, transforms
-from torch.multiprocessing import Process, Value, Lock, Queue
+# from torch.multiprocessing import Process, Value, Lock, Queue
 from mysgd import StochasticGD
 
 
@@ -135,20 +135,20 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
+    kwargs = {'num_workers': mp.cpu_count(), 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
+        datasets.MNIST('../../data', train=True, download=True,
                        transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
-        batch_size=args.batch_size, shuffle=True, **kwargs)
+        batch_size=args.batch_size, shuffle=True, num_workers=mp.cpu_count())
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=False, transform=transforms.Compose([
+        datasets.MNIST('../../data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
-        batch_size=args.test_batch_size, shuffle=True, **kwargs)
+        batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
 
 
     model = Net()#.to(device)
@@ -160,7 +160,7 @@ def main():
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     # gamma = 0.9 + torch.rand(1).item()/10
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
-    val = Value('i', 0)
+    val = mp.Value('i', 0)
     
     if args.usemysgd:
       f = open('stochastic_gradient_descent'+'_LR='+str(args.lr)+'_usebackprop=True.txt',"w")
@@ -171,10 +171,10 @@ def main():
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
-    p = Process(target=train, args=(args, model, device, train_loader, optimizer, val))
+    p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
     p.start()
     processes.append(p)
-    p = Process(target=modelsave, args=(args, model, val))
+    p = mp.Process(target=modelsave, args=(args, model, val))
     p.start()
     processes.append(p)
     for p in processes:

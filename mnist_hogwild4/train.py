@@ -1,15 +1,17 @@
 import os
 import torch
+import multiprocessing
 # import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 from mysgd import StochasticGD
 
 def train(rank, args, model, barrier):
+    os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
+        datasets.MNIST('../../data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -24,6 +26,7 @@ def train(rank, args, model, barrier):
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
 def modelsave(args, model, barrier):
+    os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
     count = 0
             
@@ -92,10 +95,10 @@ def test(args, model, results, barrier, train_loader):
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+        datasets.MNIST('../../data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+        batch_size=args.test_batch_size, shuffle=True, num_workers=multiprocessing.cpu_count())
     testerror(args, model, test_loader, results)
     trainerror(args, model, train_loader, results)

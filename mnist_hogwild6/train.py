@@ -13,7 +13,7 @@ def train(rank, args, model, barrier, rankstart, rankstop):
     torch.manual_seed(args.seed + rank)
     
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, download=True,
+        datasets.MNIST('../../data', train=True, download=True,
                     transform=transforms.Compose([
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
@@ -100,11 +100,11 @@ def test(args, model, results, barrier, train_loader):
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+        datasets.MNIST('../../data', train=False, transform=transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+        batch_size=args.test_batch_size, shuffle=True, num_workers=multiprocessing.cpu_count())
     testerror(args, model, test_loader, results)
     trainerror(args, model, train_loader, results)
 
