@@ -57,6 +57,6 @@ python main.py --lr 0.015 --epochs 40 --test-batch-size 1000 --num-processes 40 
 # python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
 cd ../mnist1/
 mkdir -p saved_models
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 2>log1
+python main.py --lr 0.15 --epochs 40 --test-batch-size 1000 2>log1
 cd ..
 exit 1
