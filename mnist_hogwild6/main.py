@@ -4,7 +4,7 @@ import torch
 import time
 import torch.nn as nn
 import torch.nn.functional as F
-import torch.multiprocessing as mp
+import multiprocessing as mp
 from torchvision import datasets, transforms
 
 from train import train, test, modelsave
