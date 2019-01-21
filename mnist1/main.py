@@ -78,7 +78,7 @@ def train(args, model, device, train_loader, optimizer, results, val):
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
-        print("TrainError = " + str(loss) + "\n")
+        print("TrainError = " + str(loss.item()) + "\n")
 
 
 # def test(args, model, device, test_loader, results, val, istrain):
