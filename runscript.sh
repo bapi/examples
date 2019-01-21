@@ -36,12 +36,12 @@ mkdir saved_models
 # python main.py --lr 0.1 --epochs 40 --usetp 0 --usemysgd 0 --test-batch-size 1000 --num-processes 40 2>log6
 cd ../mnist_hogwild4/
 mkdir saved_models
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 2 2>log2 #| tee res1.txt
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 5 2>log3 #| tee res2.txt
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
-python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 2 2>log2 #| tee res1.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 5 2>log3 #| tee res2.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
+python main.py --lr 0.05 --epochs 40 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
 # cd ../mnist_hogwild5/
 # mkdir saved_models
 # python main.py --lr 0.1 --epochs 40 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
