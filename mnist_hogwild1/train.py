@@ -10,7 +10,8 @@ from mysgd import BATCH_PARTITIONED_SGD
 from myscheduler import MyLR
 
 def train(rank, args, model, result, train_loader, barrier, rankstart, rankstop):
-    # os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
+    if args.usetp:
+        os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     gamma = 0.9 + torch.rand(1).item()/10
     
@@ -29,10 +30,11 @@ def train(rank, args, model, result, train_loader, barrier, rankstart, rankstop)
         result[epoch-1][rank] = get_lr(optimizer)
 
 def test(args, model, results, test_loader, barrier, istrain):
-    # if istrain:
-    #     os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
-    # else:
-    #     os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
+    if args.usetp:
+        if istrain:
+            os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
+        else:
+            os.system("taskset -apc %d %d" % ((args.num_processes+1) % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed)
 
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
