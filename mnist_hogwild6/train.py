@@ -39,12 +39,12 @@ def train(rank, args, model, results, rankstart, rankstop):
         ])),
         batch_size=args.test_batch_size, shuffle=True, num_workers=1)
     
-    train_test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+    # train_test_loader = torch.utils.data.DataLoader(
+    #     datasets.MNIST('../data', train=True, transform=transforms.Compose([
+    #         transforms.ToTensor(),
+    #         transforms.Normalize((0.1307,), (0.3081,))
+    #     ])),
+    #     batch_size=args.test_batch_size, shuffle=True, num_workers=1)
     optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     gamma = 0.9 + torch.rand(1).item()/10
     scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
@@ -54,11 +54,11 @@ def train(rank, args, model, results, rankstart, rankstop):
         print("Epoch: "+ str(epoch) + "\n")
         train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
         # barrier[rank] +=1
-        l, a = test_epoch(model, test_loader)
-        print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
-            " Test_accuracy= " + str('%.2f'%a) + "\n")
-        results[epoch-1][4*rank+0] = l
-        results[epoch-1][4*rank+1] = a
+        # l, a = test_epoch(model, test_loader)
+        # print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
+        #     " Test_accuracy= " + str('%.2f'%a) + "\n")
+        # results[epoch-1][4*rank+0] = l
+        # results[epoch-1][4*rank+1] = a
 
         l, a = test_epoch(model, train_test_loader)
         print("Epoch: "+ str(epoch) + " Train_loss= " + str('%.6f'%l) + 
@@ -68,65 +68,65 @@ def train(rank, args, model, results, rankstart, rankstop):
         
             
 
-def test(args, model, results, barrier):
-    torch.manual_seed(args.seed)
+# def test(args, model, results, barrier):
+#     torch.manual_seed(args.seed)
 
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
-    counter = torch.zeros([len(barrier)], dtype=torch.int32)
-    count = 0
+#     test_loader = torch.utils.data.DataLoader(
+#         datasets.MNIST('../data', train=False, transform=transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Normalize((0.1307,), (0.3081,))
+#         ])),
+#         batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+#     counter = torch.zeros([len(barrier)], dtype=torch.int32)
+#     count = 0
             
-    while count < args.epochs:
-        allincremented = True
-        for i in range(len(barrier)):
-            if barrier[i] <= counter[i]:
-                allincremented = False
-                break
-        if allincremented:
-            l, a = test_epoch(model, test_loader)
-            print("Epoch: "+ str(count) + " Test_loss= " + str('%.6f'%l) + 
-                " Test_accuracy= " + str('%.2f'%a) + "\n")
-            results[count][0] = l
-            results[count][1] = a
-            count +=1
-            for i in range(len(barrier)):
-                counter[i] +=count
+#     while count < args.epochs:
+#         allincremented = True
+#         for i in range(len(barrier)):
+#             if barrier[i] <= counter[i]:
+#                 allincremented = False
+#                 break
+#         if allincremented:
+#             l, a = test_epoch(model, test_loader)
+#             print("Epoch: "+ str(count) + " Test_loss= " + str('%.6f'%l) + 
+#                 " Test_accuracy= " + str('%.2f'%a) + "\n")
+#             results[count][0] = l
+#             results[count][1] = a
+#             count +=1
+#             for i in range(len(barrier)):
+#                 counter[i] +=count
             
 
 
 
-def test_train(args, model, results, barrier):
-    torch.manual_seed(args.seed)
+# def test_train(args, model, results, barrier):
+#     torch.manual_seed(args.seed)
 
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../data', train=True, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307,), (0.3081,))
-        ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+#     test_loader = torch.utils.data.DataLoader(
+#         datasets.MNIST('../data', train=True, transform=transforms.Compose([
+#             transforms.ToTensor(),
+#             transforms.Normalize((0.1307,), (0.3081,))
+#         ])),
+#         batch_size=args.test_batch_size, shuffle=True, num_workers=1)
 
-    counter = torch.zeros([len(barrier)], dtype=torch.int32)
-    count = 0
+#     counter = torch.zeros([len(barrier)], dtype=torch.int32)
+#     count = 0
             
-    while count < args.epochs:
-        allincremented = True
-        for i in range(len(barrier)):
-            if barrier[i] <= counter[i]:
-                allincremented = False
-                break
-        if allincremented:
-            l, a = test_epoch(model, test_loader)
-            print("Epoch: "+ str(count) + " Train_loss= " + str('%.6f'%l) + 
-                " Train_accuracy= " + str('%.2f'%a) + "\n")
-            results[count][2] = l
-            results[count][3] = a
-            count +=1
-            for i in range(len(barrier)):
-                counter[i] +=count
+#     while count < args.epochs:
+#         allincremented = True
+#         for i in range(len(barrier)):
+#             if barrier[i] <= counter[i]:
+#                 allincremented = False
+#                 break
+#         if allincremented:
+#             l, a = test_epoch(model, test_loader)
+#             print("Epoch: "+ str(count) + " Train_loss= " + str('%.6f'%l) + 
+#                 " Train_accuracy= " + str('%.2f'%a) + "\n")
+#             results[count][2] = l
+#             results[count][3] = a
+#             count +=1
+#             for i in range(len(barrier)):
+#                 counter[i] +=count
     
 
 def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop):
@@ -136,7 +136,7 @@ def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        # loss.backward()
+        loss.backward()
         optimizer.step(loss, rankstart, rankstop)
         # if batch_idx % args.log_interval == 0:
         #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
