@@ -34,7 +34,7 @@ def modelsave(args, model, barrier):
                 allincremented = False
                 break
         if allincremented:
-            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(counter)+".pt")
+            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(count)+".pt")
             count += 1
             for i in range(len(barrier)):
                 counter[i] =count
