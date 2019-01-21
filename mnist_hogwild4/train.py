@@ -50,16 +50,16 @@ def train(rank, args, model, results):
         train_epoch(epoch, args, model, train_loader, optimizer)
         # barrier[rank] +=1
         l, a = test_epoch(model, test_loader)
-        # print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
-        #     " Test_accuracy= " + str('%.2f'%a) + "\n")
-        results[epoch][4*rank+0] = l
-        results[epoch][4*rank+1] = a
+        print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
+            " Test_accuracy= " + str('%.2f'%a) + "\n")
+        results[epoch-1][4*rank+0] = 1
+        results[epoch-1][4*rank+1] = 2
 
         l, a = test_epoch(model, train_test_loader)
-        # print("Epoch: "+ str(epoch) + " Train_loss= " + str('%.6f'%l) + 
-        #     " Train_accuracy= " + str('%.2f'%a) + "\n")
-        results[epoch][4*rank+2] = l
-        results[epoch][4*rank+3] = a
+        print("Epoch: "+ str(epoch) + " Train_loss= " + str('%.6f'%l) + 
+            " Train_accuracy= " + str('%.2f'%a) + "\n")
+        results[epoch-1][4*rank+2] = 3
+        results[epoch-1][4*rank+3] = 4
         
             
 
