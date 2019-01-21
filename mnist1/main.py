@@ -78,7 +78,7 @@ def train(args, model, device, train_loader, optimizer, val):
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
-        print("TrainError = " + str(loss.item()) + "\n")
+        print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
 
 def modelsave(args, model, val):
@@ -190,9 +190,9 @@ def main():
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
       f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.6f'%results[i][1].item())+"\t")
-      f.write(str('%.2f'%results[i][2].item())+"\t")
-      f.write(str('%.6f'%results[i][3].item())+"\n")
+      f.write(str('%.2f'%results[i][1].item())+"\t")
+      f.write(str('%.6f'%results[i][2].item())+"\t")
+      f.write(str('%.2f'%results[i][3].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 

@@ -5,8 +5,9 @@ import time
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.multiprocessing as mp
+from torchvision import datasets, transforms
 
-from train import train, test, test_train
+from train import train, test, modelsave
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
@@ -53,25 +54,20 @@ if __name__ == '__main__':
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     numproc = args.num_processes
-    results = torch.zeros(args.epochs,4*numproc)
-    results.share_memory_()
-    counter = torch.zeros([numproc], dtype=torch.int32)
-    counter.share_memory_()
-    f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
+    barrier = torch.zeros([numproc], dtype=torch.int32)
+    barrier.share_memory_()
+    
+    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'.txt',"w")
     
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, results))
-        # We first train the model across `num_processes` processes
+        p = mp.Process(target=train, args=(rank, args, model, barrier))
         p.start()
         processes.append(p)
-    # p = mp.Process(target=test, args=(args, model, results, counter))
-    # p.start()
-    # processes.append(p)
-    # p = mp.Process(target=test_train, args=(args, model, results, counter))
-    # p.start()
-    # processes.append(p)
+    p = mp.Process(target=modelsave, args=(args, model, barrier))
+    p.start()
+    processes.append(p)
     
     for p in processes:
         p.join()
@@ -79,23 +75,26 @@ if __name__ == '__main__':
     train_time = (train_end - start)
     
     # Once training is complete, we can test the model
-    # test(args, model)
+    torch.manual_seed(args.seed)
+
+    train_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=True, download=True,
+                    transform=transforms.Compose([
+                        transforms.ToTensor(),
+                        transforms.Normalize((0.1307,), (0.3081,))
+                    ])),
+        batch_size=args.batch_size, shuffle=True, num_workers=1)
+
+    results = torch.zeros(args.epochs,4)
+    test(args, model, results, barrier, train_loader)
     f.write("\n\nEpoch\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
     for i in range(args.epochs):
-        f.write('{}\t'.format(i))
-        for j in range(numproc):
-            f.write(str('%.6f'%results[i][4*j+0].item())+"\t")
-        f.write("\t")
-        for j in range(numproc):
-            f.write(str('%.2f'%results[i][4*j+1].item())+"\t")
-        f.write("\t")
-        for j in range(numproc):
-            f.write(str('%.6f'%results[i][4*j+2].item())+"\t")
-        f.write("\t")
-        for j in range(numproc):
-            f.write(str('%.2f'%results[i][4*j+3].item())+"\t")
-        f.write("\n")
-
+      f.write('{}\t'.format(i))
+      f.write(str('%.6f'%results[i][0].item())+"\t")
+      f.write(str('%.2f'%results[i][1].item())+"\t")
+      f.write(str('%.6f'%results[i][2].item())+"\t")
+      f.write(str('%.6f'%results[i][3].item())+"\n")
+    
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
     f.close()
