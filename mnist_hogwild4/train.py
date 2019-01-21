@@ -1,9 +1,9 @@
 import os
 import torch
-import torch.optim as optim
+# import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-
+from mysgd import StochasticGD
 def train(rank, args, model, barrier):
     torch.manual_seed(args.seed + rank)
 
@@ -15,7 +15,7 @@ def train(rank, args, model, barrier):
                     ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
-    optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
         train_epoch(epoch, args, model, train_loader, optimizer)
         barrier[rank] +=1
@@ -40,6 +40,8 @@ def test(args, model, results, barrier):
                 break
         if allincremented:
             l, a = test_epoch(model, test_loader)
+            print("Epoch: "+ str(count) + " Test_loss= " + str('%.6f'%l) + 
+                " Test_accuracy= " + str('%.2f'%a) + "\n")
             results[count][0] = l
             results[count][1] = a
             count +=1
@@ -70,6 +72,8 @@ def test_train(args, model, results, barrier):
                 break
         if allincremented:
             l, a = test_epoch(model, test_loader)
+            print("Epoch: "+ str(count) + " Train_loss= " + str('%.6f'%l) + 
+                " Train_accuracy= " + str('%.2f'%a) + "\n")
             results[count][2] = l
             results[count][3] = a
             count +=1
@@ -84,12 +88,12 @@ def train_epoch(epoch, args, model, data_loader, optimizer):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        loss.backward()
-        optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                pid, epoch, batch_idx * len(data), len(data_loader.dataset),
-                100. * batch_idx / len(data_loader), loss.item()))
+        # loss.backward()
+        optimizer.step(loss)
+        # if batch_idx % args.log_interval == 0:
+        #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
+        #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
+        #         100. * batch_idx / len(data_loader), loss.item()))
 
 
 def test_epoch(model, data_loader):
@@ -104,7 +108,7 @@ def test_epoch(model, data_loader):
             correct += pred.eq(target).sum().item()
 
     test_loss /= len(data_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(data_loader.dataset),
-        100. * correct / len(data_loader.dataset)))
+    # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    #     test_loss, correct, len(data_loader.dataset),
+    #     100. * correct / len(data_loader.dataset)))
     return (test_loss*10000, correct)
