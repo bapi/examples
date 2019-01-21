@@ -33,9 +33,9 @@ class Net(nn.Module):
     
 def train_epoch(args, model, device, train_loader, optimizer, epoch):
     model.train()
-    lerning_rate = 0
-    for param_group in optimizer.param_groups:
-        lerning_rate = param_group['lr']
+    # lerning_rate = 0
+    # for param_group in optimizer.param_groups:
+    #     lerning_rate = param_group['lr']
         
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -51,15 +51,14 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
         #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
         #         epoch, batch_idx * len(data), len(train_loader.dataset),
         #         100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
-    return lerning_rate
+    return loss
 
-def test_epoch(args, model, device, test_loader):
+def test_epoch(args, model, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
@@ -75,38 +74,56 @@ def test_epoch(args, model, device, test_loader):
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, results, val):
-  if args.usetp:
-    os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
-    
   for epoch in range(1, args.epochs + 1):
-        # scheduler.step()
-        lerning_rate = train_epoch(args, model, device, train_loader, optimizer, epoch)
+        print("Training: Epoch = " + str(epoch))
+        loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
-        results[epoch - 1][0] = lerning_rate
+        print("TrainError = " + str(loss) + "\n")
 
 
-def test(args, model, device, test_loader, results, val, istrain):
-    if args.usetp:
-        if istrain:
-            os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-        else:
-            os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
+# def test(args, model, device, test_loader, results, val, istrain):
+#     if args.usetp:
+#         if istrain:
+#             os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
+#         else:
+#             os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
+#     counter = 0
+#     while counter < args.epochs:
+#         if val.value > counter:
+#             l,a = test_epoch(args, model, device, test_loader)
+#             if istrain:
+#                 print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
+#                 " Train_accuracy= " + str('%.2f'%a) + "\n")
+#                 results[counter][3] = l
+#                 results[counter][4] = a
+#             else:
+#                 print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
+#                 + " Test_accuracy= " + str('%.2f'%a) + "\n")
+#                 results[counter][1] = l
+#                 results[counter][2] = a
+#             counter += 1
+        # print("still waiting for update!")
+
+def modelsave(args, model, val):
     counter = 0
     while counter < args.epochs:
         if val.value > counter:
-            l,a = test_epoch(args, model, device, test_loader)
-            if istrain:
-                print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
-                " Train_accuracy= " + str('%.2f'%a) + "\n")
-                results[counter][3] = l
-                results[counter][4] = a
-            else:
-                print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
-                + " Test_accuracy= " + str('%.2f'%a) + "\n")
-                results[counter][1] = l
-                results[counter][2] = a
+            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(counter)+".pt")
             counter += 1
-        # print("still waiting for update!")
+def testerror(args, model, test_loader, results):
+    for i in range(args.epochs):
+        print("TestError Computing: Epoch = " + str(i) + "\n")
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        l,a = test_epoch(args, model, test_loader)
+        results[i][0] = l
+        results[i][1] = a    
+def trainerror(args, model, test_loader, results):
+    for i in range(args.epochs):
+        print("TrainError Computing: Epoch = " + str(i) + "\n")
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        l,a = test_epoch(args, model, test_loader)
+        results[i][2] = l
+        results[i][3] = a    
 
 def main():
     # Training settings
@@ -143,19 +160,12 @@ def main():
 
     kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
     train_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
+        datasets.MNIST('../data', train=True, download=True,
                        transform=transforms.Compose([
                            transforms.ToTensor(),
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.batch_size, shuffle=True, **kwargs)
-    train_test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('./data', train=True, download=True,
-                       transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.test_batch_size, shuffle=True, **kwargs)
     test_loader = torch.utils.data.DataLoader(
         datasets.MNIST('./data', train=False, transform=transforms.Compose([
                            transforms.ToTensor(),
@@ -175,7 +185,7 @@ def main():
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = Value('i', 0)
     # lock = Lock()
-    results = torch.zeros(args.epochs,5)
+    results = torch.zeros(args.epochs,4)
     results.share_memory_()
     
     if args.usemysgd:
@@ -190,10 +200,7 @@ def main():
     p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
     p.start()
     processes.append(p)
-    # p = Process(target=test, args=(args, model, device, train_test_loader, results, val, True))
-    # p.start()
-    # processes.append(p)
-    p = Process(target=test, args=(args, model, device, test_loader, results, val, False))
+    p = Process(target=modelsave, args=(args, model, val))
     p.start()
     processes.append(p)
     for p in processes:
@@ -201,6 +208,8 @@ def main():
     train_end = time.time()
     train_time = (train_end - start)
     
+    testerror(args, model, test_loader, results)
+    trainerror(args, model, train_loader, results)
     f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
     
     for i in range(args.epochs):
@@ -208,8 +217,7 @@ def main():
       f.write(str('%.6f'%results[i][0].item())+"\t")
       f.write(str('%.6f'%results[i][1].item())+"\t")
       f.write(str('%.2f'%results[i][2].item())+"\t")
-      f.write(str('%.6f'%results[i][3].item())+"\t")
-      f.write(str('%.2f'%results[i][4].item())+"\n")
+      f.write(str('%.6f'%results[i][3].item())+"\n")
       
 
     print("Training time = " + str(train_time)) 
