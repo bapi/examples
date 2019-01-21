@@ -51,7 +51,7 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
         #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
         #         epoch, batch_idx * len(data), len(train_loader.dataset),
         #         100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
-    return loss
+    return 10000*loss
 
 def test_epoch(model, test_loader):
     model.eval()

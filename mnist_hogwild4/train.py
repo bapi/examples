@@ -34,7 +34,7 @@ def modelsave(args, model, barrier):
                 allincremented = False
                 break
         if allincremented:
-            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(count)+".pt")
+            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(args.num_processes)+str(count)+".pt")
             count += 1
             for i in range(len(barrier)):
                 counter[i] =count
@@ -43,14 +43,14 @@ def modelsave(args, model, barrier):
 def testerror(args, model, test_loader, results):
     for i in range(args.epochs):
         print("TestError Computing: Epoch = " + str(i) + "\n")
-        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(args.num_processes)+str(i)+".pt"))
         l,a = test_epoch(model, test_loader)
         results[i][0] = l
         results[i][1] = a    
 def trainerror(args, model, test_loader, results):
     for i in range(args.epochs):
         print("TrainError Computing: Epoch = " + str(i) + "\n")
-        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(args.num_processes)+str(i)+".pt"))
         l,a = test_epoch(model, test_loader)
         results[i][2] = l
         results[i][3] = a    
