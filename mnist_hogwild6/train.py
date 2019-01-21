@@ -24,7 +24,7 @@ def train(rank, args, model, barrier, rankstart, rankstop):
     for epoch in range(1, args.epochs + 1):
         scheduler.step()
         print("Training: Epoch = " + str(epoch))
-        loss = train_epoch(epoch, args, model, train_loader, optimizer)
+        loss = train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
         barrier[rank] +=1
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
