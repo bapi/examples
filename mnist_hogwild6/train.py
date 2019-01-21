@@ -1,5 +1,6 @@
 import os
 import torch
+import multiprocessing
 # import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
@@ -8,6 +9,7 @@ from myscheduler import MyLR
 
 
 def train(rank, args, model, barrier, rankstart, rankstop):
+    os.system("taskset -apc %d %d" % (rank % multiprocessing.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     
     train_loader = torch.utils.data.DataLoader(
@@ -29,6 +31,7 @@ def train(rank, args, model, barrier, rankstart, rankstop):
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
 def modelsave(args, model, barrier):
+    os.system("taskset -apc %d %d" % (args.num_processes % multiprocessing.cpu_count(), os.getpid()))
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
     count = 0
             
