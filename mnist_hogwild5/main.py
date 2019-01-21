@@ -57,12 +57,13 @@ if __name__ == '__main__':
     results.share_memory_()
     counter = torch.zeros([numproc], dtype=torch.int32)
     counter.share_memory_()
+    lock = mp.Lock()
     f = open('hogwild_SCD'+'_LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_usebackprop=False.txt',"w")
     
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, results))
+        p = mp.Process(target=train, args=(rank, args, model, results, lock))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)

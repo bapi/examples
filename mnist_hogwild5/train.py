@@ -20,7 +20,7 @@ from mysgd import StochasticGD
 #         train_epoch(epoch, args, model, train_loader, optimizer)
 #         barrier[rank] +=1
 
-def train(rank, args, model, results):
+def train(rank, args, model, results, lock):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
@@ -47,7 +47,7 @@ def train(rank, args, model, results):
     optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
         print("Epoch: "+ str(epoch) + "\n")
-        train_epoch(epoch, args, model, train_loader, optimizer)
+        train_epoch(epoch, args, model, train_loader, optimizer, lock)
         # barrier[rank] +=1
         l, a = test_epoch(model, test_loader)
         print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
@@ -124,7 +124,7 @@ def test_train(args, model, results, barrier):
                 counter[i] +=count
     
 
-def train_epoch(epoch, args, model, data_loader, optimizer):
+def train_epoch(epoch, args, model, data_loader, optimizer, lock):
     model.train()
     pid = os.getpid()
     for batch_idx, (data, target) in enumerate(data_loader):
@@ -132,7 +132,7 @@ def train_epoch(epoch, args, model, data_loader, optimizer):
         output = model(data)
         loss = F.nll_loss(output, target)
         # loss.backward()
-        optimizer.step(loss)
+        optimizer.step(loss, lock)
         # if batch_idx % args.log_interval == 0:
         #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
         #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
