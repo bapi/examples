@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.multiprocessing as mp
 
-from train import train, test, test_train
+from train import train#, test, test_train
 
 # Training settings
 parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
