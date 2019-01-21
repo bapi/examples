@@ -53,7 +53,7 @@ if __name__ == '__main__':
     model = Net()
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     numproc = args.num_processes
-    results = torch.zeros(args.epochs,4)
+    results = torch.zeros(args.epochs,4*numproc)
     results.share_memory_()
     counter = torch.zeros([numproc], dtype=torch.int32)
     counter.share_memory_()
@@ -62,16 +62,16 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, counter))
+        p = mp.Process(target=train, args=(rank, args, model, results))
         # We first train the model across `num_processes` processes
         p.start()
         processes.append(p)
-    p = mp.Process(target=test, args=(args, model, results, counter))
-    p.start()
-    processes.append(p)
-    p = mp.Process(target=test_train, args=(args, model, results, counter))
-    p.start()
-    processes.append(p)
+    # p = mp.Process(target=test, args=(args, model, results, counter))
+    # p.start()
+    # processes.append(p)
+    # p = mp.Process(target=test_train, args=(args, model, results, counter))
+    # p.start()
+    # processes.append(p)
     
     for p in processes:
         p.join()
@@ -83,11 +83,12 @@ if __name__ == '__main__':
     f.write("\n\nEpoch\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
     for i in range(args.epochs):
       f.write('{}\t'.format(i))
-      f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.2f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\t")
-      f.write(str('%.2f'%results[i][3].item())+"\n")
-      
+      for j in range(numproc):
+        f.write(str('%.6f'%results[i][4*j+0].item())+"\t")
+        f.write(str('%.2f'%results[i][4*j+1].item())+"\t")
+        f.write(str('%.6f'%results[i][4*j+2].item())+"\t")
+        f.write(str('%.2f'%results[i][4*j+3].item())+"\t")
+      f.write("\n")
 
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 

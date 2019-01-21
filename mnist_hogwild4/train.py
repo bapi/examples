@@ -4,7 +4,23 @@ import torch
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 from mysgd import StochasticGD
-def train(rank, args, model, barrier):
+# def train(rank, args, model, barrier):
+#     torch.manual_seed(args.seed + rank)
+
+#     train_loader = torch.utils.data.DataLoader(
+#         datasets.MNIST('../data', train=True, download=True,
+#                     transform=transforms.Compose([
+#                         transforms.ToTensor(),
+#                         transforms.Normalize((0.1307,), (0.3081,))
+#                     ])),
+#         batch_size=args.batch_size, shuffle=True, num_workers=1)
+
+#     optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+#     for epoch in range(1, args.epochs + 1):
+#         train_epoch(epoch, args, model, train_loader, optimizer)
+#         barrier[rank] +=1
+
+def train(rank, args, model, results):
     torch.manual_seed(args.seed + rank)
 
     train_loader = torch.utils.data.DataLoader(
@@ -14,11 +30,38 @@ def train(rank, args, model, barrier):
                         transforms.Normalize((0.1307,), (0.3081,))
                     ])),
         batch_size=args.batch_size, shuffle=True, num_workers=1)
-
+    test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=False, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+    
+    train_test_loader = torch.utils.data.DataLoader(
+        datasets.MNIST('../data', train=True, transform=transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.1307,), (0.3081,))
+        ])),
+        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+    
     optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
+        print("Epoch: "+ str(epoch) + "\n")
         train_epoch(epoch, args, model, train_loader, optimizer)
-        barrier[rank] +=1
+        # barrier[rank] +=1
+        l, a = test_epoch(model, test_loader)
+        # print("Epoch: "+ str(epoch) + " Test_loss= " + str('%.6f'%l) + 
+        #     " Test_accuracy= " + str('%.2f'%a) + "\n")
+        results[epoch][4*rank+0] = l
+        results[epoch][4*rank+1] = a
+
+        l, a = test_epoch(model, train_test_loader)
+        # print("Epoch: "+ str(epoch) + " Train_loss= " + str('%.6f'%l) + 
+        #     " Train_accuracy= " + str('%.2f'%a) + "\n")
+        results[epoch][4*rank+2] = l
+        results[epoch][4*rank+3] = a
+        
+            
 
 def test(args, model, results, barrier):
     torch.manual_seed(args.seed)
