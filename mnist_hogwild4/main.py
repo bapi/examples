@@ -83,7 +83,7 @@ if __name__ == '__main__':
                         transforms.ToTensor(),
                         transforms.Normalize((0.1307,), (0.3081,))
                     ])),
-        batch_size=args.batch_size, shuffle=True, num_workers=1)
+        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
 
     results = torch.zeros(args.epochs,4)
     test(args, model, results, barrier, train_loader)
@@ -93,7 +93,7 @@ if __name__ == '__main__':
       f.write(str('%.6f'%results[i][0].item())+"\t")
       f.write(str('%.2f'%results[i][1].item())+"\t")
       f.write(str('%.6f'%results[i][2].item())+"\t")
-      f.write(str('%.6f'%results[i][3].item())+"\n")
+      f.write(str('%.2f'%results[i][3].item())+"\n")
     
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
