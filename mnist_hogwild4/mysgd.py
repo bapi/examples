@@ -86,14 +86,14 @@ class StochasticGD(Optimizer):
             nesterov = group['nesterov']
 
             for p in group['params']:
-                d = None
-                d = torch.autograd.grad(l, p, retain_graph=True)
-                if d is None:
-                    continue
-                d_p = d[0]
-                # if p.grad is None:
+                # d = None
+                # d = torch.autograd.grad(l, p, grad_outputs=None, retain_graph=None, create_graph=False, only_inputs=True, allow_unused=False)
+                # if d is None:
                 #     continue
-                # d_p = p.grad.data
+                # d_p = d[0]
+                if p.grad is None:
+                    continue
+                d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
                 if momentum != 0:
