@@ -73,36 +73,13 @@ def test_epoch(args, model, test_loader):
     #     test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
-def train(args, model, device, train_loader, optimizer, results, val):
+def train(args, model, device, train_loader, optimizer, val):
   for epoch in range(1, args.epochs + 1):
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
         print("TrainError = " + str(loss.item()) + "\n")
 
-
-# def test(args, model, device, test_loader, results, val, istrain):
-#     if args.usetp:
-#         if istrain:
-#             os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-#         else:
-#             os.system("taskset -apc %d %d" % (2 % multiprocessing.cpu_count(), os.getpid()))
-#     counter = 0
-#     while counter < args.epochs:
-#         if val.value > counter:
-#             l,a = test_epoch(args, model, device, test_loader)
-#             if istrain:
-#                 print("Epoch: "+ str(counter) + " Train_loss= " + str('%.6f'%l) + 
-#                 " Train_accuracy= " + str('%.2f'%a) + "\n")
-#                 results[counter][3] = l
-#                 results[counter][4] = a
-#             else:
-#                 print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) 
-#                 + " Test_accuracy= " + str('%.2f'%a) + "\n")
-#                 results[counter][1] = l
-#                 results[counter][2] = a
-#             counter += 1
-        # print("still waiting for update!")
 
 def modelsave(args, model, val):
     counter = 0
@@ -184,9 +161,6 @@ def main():
     # gamma = 0.9 + torch.rand(1).item()/10
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = Value('i', 0)
-    # lock = Lock()
-    results = torch.zeros(args.epochs,4)
-    results.share_memory_()
     
     if args.usemysgd:
       f = open('stochastic_gradient_descent'+'_LR='+str(args.lr)+'_usebackprop=True.txt',"w")
@@ -197,7 +171,7 @@ def main():
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
-    p = Process(target=train, args=(args, model, device, train_loader, optimizer, results, val))
+    p = Process(target=train, args=(args, model, device, train_loader, optimizer, val))
     p.start()
     processes.append(p)
     p = Process(target=modelsave, args=(args, model, val))
@@ -208,6 +182,7 @@ def main():
     train_end = time.time()
     train_time = (train_end - start)
     
+    results = torch.zeros(args.epochs,4)
     testerror(args, model, test_loader, results)
     trainerror(args, model, train_loader, results)
     f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
