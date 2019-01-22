@@ -42,7 +42,7 @@ def test_epoch(model, test_loader):
     with torch.no_grad():
         for data, target in test_loader:
             output = model(data)
-            test_loss += criterion(output, target, reduction='sum').item() # sum up batch loss
+            test_loss += criterion(output, target).item() # sum up batch loss
             _, predicted = torch.max(output.data, 1)
             # total += target.size(0)
             correct += (predicted == target).sum().item()
