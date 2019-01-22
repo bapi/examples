@@ -1,6 +1,6 @@
 from __future__ import print_function
 import argparse
-import multiprocessing
+import torch.multiprocessing as mp
 import os
 import time 
 import torch
@@ -8,35 +8,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import torch.optim.lr_scheduler as lrs
-from torchvision import datasets, transforms, models
-from torch.multiprocessing import Process, Value, Lock, Queue
+from torchvision import datasets, transforms
+# from torch.multiprocessing import Process, Value, Lock, Queue
 from mysgd import StochasticGD
-from resnet_cifar import *
+from resnet_class import ResNet, ResidualBlock, transform
 
+criterion = nn.CrossEntropyLoss()
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(4*4*50, 500)
-        self.fc2 = nn.Linear(500, 10)
-
-    def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 4*4*50)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
-    
 def train_epoch(args, model, device, train_loader, optimizer, epoch):
     model.train()
-    lerning_rate = 0
-    for param_group in optimizer.param_groups:
-        lerning_rate = param_group['lr']
+    # lerning_rate = 0
+    # for param_group in optimizer.param_groups:
+    #     lerning_rate = param_group['lr']
         
     for batch_idx, (data, target) in enumerate(train_loader):
         data, target = data.to(device), target.to(device)
@@ -48,62 +31,72 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
           optimizer.step()
         else:
           optimizer.step(loss)
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
-    return lerning_rate
+        # if batch_idx % args.log_interval == 0:
+        #     print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLR: {:.6f}\tLoss: {:.6f}'.format(
+        #         epoch, batch_idx * len(data), len(train_loader.dataset),
+        #         100. * batch_idx / len(train_loader), lerning_rate, loss.item()))
+    return 10000*loss
 
-def test_epoch(args, model, device, test_loader):
+def test_epoch(model, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
+            # test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
+            test_loss += criterion(output, target, reduction='sum').item() # sum up batch loss
             pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
             correct += pred.eq(target.view_as(pred)).sum().item()
+            # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{}\n'.format(
+            # test_loss, correct, len(test_loader.dataset)))
+    
 
     test_loss = (test_loss*10000) / len(test_loader.dataset)
-    accuracy = 100. * correct / len(test_loader.dataset)
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset), accuracy))
+    accuracy = correct#100. * correct / len(test_loader.dataset)
+    # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
+    #     test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
-def train(args, model, device, train_loader, optimizer, scheduler, results, val, lock):
-  os.system("taskset -apc %d %d" % (0 % multiprocessing.cpu_count(), os.getpid()))
-    
-  for epoch in range(1, args.epochs + 1):
-        scheduler.step()
-        lerning_rate = train_epoch(args, model, device, train_loader, optimizer, epoch)
-        with lock:
-          val.value += 1
-        results[epoch - 1][0] = lerning_rate
+def train(args, model, device, train_loader, optimizer, val):
+    if args.tp:
+        os.system("taskset -apc %d %d" % (0 % mp.cpu_count(), os.getpid()))
+    for epoch in range(1, args.epochs + 1):
+        print("Training: Epoch = " + str(epoch))
+        loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
+        val.value += 1
+        print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
 
-def test(args, model, device, test_loader, results, val, lock):
-  os.system("taskset -apc %d %d" % (1 % multiprocessing.cpu_count(), os.getpid()))
-  counter = 0
-  while counter < args.epochs:
-    if val.value > 0:
-      with lock:
-        val.value -= 1
-      l,a = test_epoch(args, model, device, test_loader)
-      print("Epoch: "+ str(counter) + " Test_loss= " + str('%.6f'%l) + "\n")
-      results[counter][1] = l
-      results[counter][2] = a
-      # f.write(str('%.6f'%l)+"\n")
-      counter += 1
-    # print("still waiting for update!")
+def modelsave(args, model, val):
+    if args.tp:
+        os.system("taskset -apc %d %d" % (1 % mp.cpu_count(), os.getpid()))
+    counter = 0
+    while counter < args.epochs:
+        if val.value > counter:
+            torch.save(model.state_dict(),"./saved_models/mnist_cnn"+str(counter)+".pt")
+            counter += 1
+def testerror(args, model, test_loader, results):
+    for i in range(args.epochs):
+        print("TestError Computing: Epoch = " + str(i) + "\n")
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        l,a = test_epoch(model, test_loader)
+        results[i][0] = l
+        results[i][1] = a    
+def trainerror(args, model, test_loader, results):
+    for i in range(args.epochs):
+        print("TrainError Computing: Epoch = " + str(i) + "\n")
+        model.load_state_dict(torch.load("./saved_models/mnist_cnn"+str(i)+".pt"))
+        l,a = test_epoch(model, test_loader)
+        results[i][2] = l
+        results[i][3] = a    
 
 def main():
     # Training settings
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                         help='input batch size for training (default: 64)')
-    parser.add_argument('--test-batch-size', type=int, default=200, metavar='N',
+    parser.add_argument('--test-batch-size', type=int, default=2000, metavar='N',
                         help='input batch size for testing (default: 1000)')
     parser.add_argument('--epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train (default: 10)')
@@ -119,6 +112,10 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--usemysgd', type=int, default=0, metavar='U',
                         help='Whether to use custom SGD')
+    parser.add_argument('--tp', type=int, default=1, metavar='U',
+                        help='Whether to use Thread pinning')
+    parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
+                        help='Whether Time measure')
     
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
@@ -129,28 +126,24 @@ def main():
 
     device = torch.device("cuda" if use_cuda else "cpu")
 
-    kwargs = {'num_workers': 1, 'pin_memory': True} if use_cuda else {}
-    
-    transform_train = transforms.Compose([
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])
+    train_dataset = datasets.CIFAR10(root='.../../data/',
+                                                train=True, 
+                                                transform=transform,
+                                                download=True)
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-    ])   
-    trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
-    train_loader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=1)
+    test_dataset = datasets.CIFAR10(root='../../data/',
+                                                train=False, 
+                                                transform=transforms.ToTensor(),
+                                                download=True)
 
-    testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
-    test_loader = torch.utils.data.DataLoader(testset, batch_size=100, shuffle=False, num_workers=1)
+    # Data loader
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
+                                              batch_size=args.batch_size, 
+                                              shuffle=True)
     
-    # model = ResNet(5, 10)
-    # model = models.resnet50()
-    model = resnet20_cifar()
+
+    model = ResNet(ResidualBlock, [2, 2, 2]).to(device)
+
     # model = Net()#.to(device)
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     
@@ -158,42 +151,49 @@ def main():
       optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     else:
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    gamma = 0.9 + torch.rand(1).item()/10
-    scheduler = lrs.ExponentialLR(optimizer, gamma)
-    val = Value('i', 0)
-    lock = Lock()
-    results = torch.zeros(args.epochs,3)
-    results.share_memory_()
+    # gamma = 0.9 + torch.rand(1).item()/10
+    # scheduler = lrs.ExponentialLR(optimizer, gamma)
+    val = mp.Value('i', 0)
     
     if args.usemysgd:
       f = open('stochastic_gradient_descent'+'_LR='+str(args.lr)+'_usebackprop=True.txt',"w")
     else:
       f = open('stochastic_gradient_descent'+'_lr='+str(args.lr)+'_usebackprop=False.txt',"w")
 
-    print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
-    f.write("\n\nEpoch\tLR\tLoss\tAccuracy\n\n")
+    # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
+    # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
-    # for rank in range(1):
-    p = Process(target=train, args=(args, model, device, train_loader, optimizer, scheduler, results, val, lock))
-    # We first train the model across `num_processes` processes
+    p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
     p.start()
     processes.append(p)
-    p = Process(target=test, args=(args, model, device, test_loader, results, val, lock))
-    p.start()
-    processes.append(p)
+    
+    if args.timemeasure == 0:
+        p = mp.Process(target=modelsave, args=(args, model, val))
+        p.start()
+        processes.append(p)
     for p in processes:
         p.join()
     train_end = time.time()
     train_time = (train_end - start)
     
-    for i in range(args.epochs):
-      f.write('{}\t'.format(i))
-      f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.6f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\n")
-      
+    f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
+    if args.timemeasure == 0:
+        test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
+            batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
+
+        results = torch.zeros(args.epochs,4)
+        testerror(args, model, test_loader, results)
+        trainerror(args, model, train_loader, results)
+        f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
+        
+        for i in range(args.epochs):
+            f.write('{}\t'.format(i))
+            f.write(str('%.6f'%results[i][0].item())+"\t")
+            f.write(str('%.2f'%results[i][1].item())+"\t")
+            f.write(str('%.6f'%results[i][2].item())+"\t")
+            f.write(str('%.2f'%results[i][3].item())+"\n")
+        
 
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
