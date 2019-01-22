@@ -68,7 +68,7 @@ class StochasticGD(Optimizer):
         for group in self.param_groups:
             group.setdefault('nesterov', False)
 
-    def step(self, l, lock, closure=None):
+    def step(self, l, lock, usesgd, closure=None):
         """Performs a single optimization step.
 
         Arguments:
@@ -86,14 +86,16 @@ class StochasticGD(Optimizer):
             nesterov = group['nesterov']
 
             for p in group['params']:
-                d = None
-                d = torch.autograd.grad(l, p, grad_outputs=None, retain_graph=True, create_graph=False, only_inputs=True, allow_unused=False)
-                if d is None:
-                    continue
-                d_p = d[0]
-                # if p.grad is None:
-                #     continue
-                # d_p = p.grad.data
+                if usesgd:
+                    d = None
+                    d = torch.autograd.grad(l, p, grad_outputs=None, retain_graph=True, create_graph=False, only_inputs=True, allow_unused=False)
+                    if d is None:
+                        continue
+                    d_p = d[0]
+                else:
+                    if p.grad is None:
+                        continue
+                    d_p = p.grad.data
                 if weight_decay != 0:
                     d_p.add_(weight_decay, p.data)
                 if momentum != 0:

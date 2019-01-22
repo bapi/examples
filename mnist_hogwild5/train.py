@@ -65,8 +65,9 @@ def train_epoch(epoch, args, model, data_loader, optimizer, lock):
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        # loss.backward()
-        optimizer.step(loss, lock)
+        if args.usemysgd:
+            loss.backward()
+        optimizer.step(loss, lock, args.usemysgd)
         # if batch_idx % args.log_interval == 0:
         #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
         #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),

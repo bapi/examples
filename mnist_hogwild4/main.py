@@ -29,7 +29,9 @@ parser.add_argument('--num-processes', type=int, default=2, metavar='N',
                     help='how many training processes to use (default: 2)')
 parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
                         help='Whether Time measure')
-
+parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
+                        help='Whether to use custom SGD')
+    
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
