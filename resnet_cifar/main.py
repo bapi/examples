@@ -41,9 +41,9 @@ def test_epoch(model, test_loader):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            outputs = model(data)
-            test_loss += criterion(outputs, target, reduction='sum').item() # sum up batch loss
-            _, predicted = torch.max(outputs.data, 1)
+            output = model(data)
+            test_loss += criterion(output, target, reduction='sum').item() # sum up batch loss
+            _, predicted = torch.max(output.data, 1)
             # total += target.size(0)
             correct += (predicted == target).sum().item()
             # accuracy = correct/total
@@ -128,7 +128,7 @@ def main():
     # Data loader
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                               batch_size=args.batch_size, 
-                                              shuffle=True)
+                                              shuffle=True, num_workers=mp.cpu_count())
     
 
     model = ResNet(ResidualBlock, [2, 2, 2]).to(device)
