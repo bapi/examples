@@ -3,11 +3,11 @@ cd resnet_cifar_hogwild1/
 mkdir -p resnet_cifar_hogwild1_time_measure
 cd resnet_cifar_hogwild1_time_measure
 mkdir -p saved_models
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
 cd ..
 mkdir -p resnet_cifar_hogwild1_converge_measure
 cd resnet_cifar_hogwild1_converge_measure
@@ -18,11 +18,11 @@ cd resnet_cifar_hogwild2/
 mkdir -p resnet_cifar_hogwild2_time_measure
 cd resnet_cifar_hogwild2_time_measure
 mkdir -p saved_models
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
 cd ..
 mkdir -p resnet_cifar_hogwild2_converge_measure
 cd resnet_cifar_hogwild2_converge_measure
@@ -33,11 +33,11 @@ cd resnet_cifar_hogwild3/
 mkdir -p resnet_cifar_hogwild3_time_measure
 cd resnet_cifar_hogwild3_time_measure
 mkdir -p saved_models
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 1 2>log1 #| tee res0.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 10 2>log4 #| tee res3.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 20 2>log5 #| tee res4.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 40 2>log6 #| tee res5.txt
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 --num-processes 79 2>log6 #| tee res5.txt
 cd ..
 mkdir -p resnet_cifar_hogwild3_converge_measure
 cd resnet_cifar_hogwild3_converge_measure
@@ -48,7 +48,7 @@ cd resnet_cifar/
 mkdir -p resnet_cifar_time_measure
 cd resnet_cifar_time_measure
 mkdir -p saved_models
-python ../main.py --timemeasure 1 --lr 0.001 --epochs 1 --test-batch-size 1000 2>log1
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.001 --epochs 1 --test-batch-size 1000 2>log1
 cd ..
 mkdir -p resnet_cifar_converge_measure
 cd resnet_cifar_converge_measure

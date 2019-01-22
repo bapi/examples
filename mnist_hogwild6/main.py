@@ -1,10 +1,12 @@
 from __future__ import print_function
 import argparse
+import os
 import torch
 import time
 import torch.nn as nn
 import torch.nn.functional as F
 import multiprocessing as mp
+import torch.multiprocessing as mpt
 from torchvision import datasets, transforms
 
 from train import train, test, modelsave
@@ -33,6 +35,8 @@ parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
 parser.add_argument('--tp', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
+parser.add_argument('--tp', type=int, default=1, metavar='U',
+                        help='Whether to use custom SGD')
         
 class Net(nn.Module):
     def __init__(self):
@@ -54,6 +58,8 @@ class Net(nn.Module):
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    if not os.path.exists('saved_models'):
+        os.makedirs('saved_models')
 
     torch.manual_seed(args.seed)
 
@@ -75,19 +81,25 @@ if __name__ == '__main__':
     barrier = torch.zeros([numproc], dtype=torch.int32)
     barrier.share_memory_()
     
-    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'.txt',"w")
+    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_epoch='+str(args.epochs)+'.txt',"w")
     
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, barrier, rankings[rank][0], rankings[rank][1]))
+        if args.tp:
+            p = mp.Process(target=train, args=(rank, args, model, barrier, rankings[rank][0], rankings[rank][1]))
+        else:
+            p = mpt.Process(target=train, args=(rank, args, model, barrier, rankings[rank][0], rankings[rank][1]))
         p.start()
         processes.append(p)
     
-    if args.timemeasure == 0:
+    # if args.timemeasure == 0:
+    if args.tp:
         p = mp.Process(target=modelsave, args=(args, model, barrier))
-        p.start()
-        processes.append(p)
+    else:
+        p = mpt.Process(target=modelsave, args=(args, model, barrier))
+    p.start()
+    processes.append(p)
     
     for p in processes:
         p.join()

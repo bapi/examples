@@ -1,6 +1,7 @@
 from __future__ import print_function
 import argparse
-import torch.multiprocessing as mp
+import multiprocessing as mp
+import torch.multiprocessing as mpt
 import os
 import time 
 import torch
@@ -135,6 +136,8 @@ def main():
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
     args = parser.parse_args()
+    if not os.path.exists('saved_models'):
+        os.makedirs('saved_models')
     use_cuda = False #not args.no_cuda and torch.cuda.is_available()
 
     torch.manual_seed(args.seed)
@@ -161,23 +164,26 @@ def main():
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = mp.Value('i', 0)
     
-    if args.usemysgd:
-      f = open('LR='+str(args.lr)+'_usebackprop=True.txt',"w")
-    else:
-      f = open('LR='+str(args.lr)+'_usebackprop=False.txt',"w")
-
+    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_epoch='+str(args.epochs)+'.txt',"w")
+    
     # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
     processes = []
-    p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
+    if args.tp:
+        p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
+    else:
+        p = mpt.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
     p.start()
     processes.append(p)
     
-    if args.timemeasure == 0:
+    # if args.timemeasure == 0:
+    if args.tp:
         p = mp.Process(target=modelsave, args=(args, model, val))
-        p.start()
-        processes.append(p)
+    else:
+        p = mpt.Process(target=modelsave, args=(args, model, val))
+    p.start()
+    processes.append(p)
     for p in processes:
         p.join()
     train_end = time.time()
