@@ -50,7 +50,7 @@ if __name__ == '__main__':
     barrier = torch.zeros([numproc], dtype=torch.int32)
     barrier.share_memory_()
     
-    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'.txt',"w")
+    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_epoch='+str(args.epochs)+'.txt',"w")
     
     start = time.time()
     processes = []
@@ -62,13 +62,13 @@ if __name__ == '__main__':
         p.start()
         processes.append(p)
     
-    if args.timemeasure == 0:
-        if args.tp:
-            p = mp.Process(target=modelsave, args=(args, model, barrier))
-        else:
-            p = mp.Process(target=modelsave, args=(args, model, barrier))
-        p.start()
-        processes.append(p)
+    # if args.timemeasure == 0:
+    if args.tp:
+        p = mp.Process(target=modelsave, args=(args, model, barrier))
+    else:
+        p = mp.Process(target=modelsave, args=(args, model, barrier))
+    p.start()
+    processes.append(p)
     
     for p in processes:
         p.join()

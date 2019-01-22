@@ -144,11 +144,8 @@ def main():
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = mp.Value('i', 0)
     
-    if args.usemysgd:
-      f = open('LR='+str(args.lr)+'_usebackprop=True.txt',"w")
-    else:
-      f = open('LR='+str(args.lr)+'_usebackprop=False.txt',"w")
-
+    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_epoch='+str(args.epochs)+'.txt',"w")
+    
     # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     start = time.time()
@@ -157,10 +154,10 @@ def main():
     p.start()
     processes.append(p)
     
-    if args.timemeasure == 0:
-        p = mp.Process(target=modelsave, args=(args, model, val))
-        p.start()
-        processes.append(p)
+    # if args.timemeasure == 0:
+    p = mp.Process(target=modelsave, args=(args, model, val))
+    p.start()
+    processes.append(p)
     for p in processes:
         p.join()
     train_end = time.time()
