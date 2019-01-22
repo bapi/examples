@@ -48,7 +48,7 @@ cd mnist1/
 mkdir -p mnist1_time_measure
 cd mnist1_time_measure
 mkdir -p saved_models
-python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.15 --epochs 1 --test-batch-size 1000 2>log1
+python ../main.py --timemeasure 1 --usemysgd 1 --tp 1 --lr 0.015 --epochs 1 --test-batch-size 1000 2>log1
 cd ..
 mkdir -p mnist1_converge_measure
 cd mnist1_converge_measure
