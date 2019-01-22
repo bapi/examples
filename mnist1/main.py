@@ -121,10 +121,12 @@ def main():
                         help='random seed (default: 1)')
     parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                         help='how many batches to wait before logging training status')
-    parser.add_argument('--usemysgd', type=int, default=0, metavar='U',
+    parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
     parser.add_argument('--usetp', type=int, default=1, metavar='U',
                         help='Whether to use Thread pinning')
+    parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
+                        help='Whether Time measure')
     
     parser.add_argument('--save-model', action='store_true', default=False,
                         help='For Saving the current Model')
@@ -143,13 +145,6 @@ def main():
                            transforms.Normalize((0.1307,), (0.3081,))
                        ])),
         batch_size=args.batch_size, shuffle=True, num_workers=mp.cpu_count())
-    test_loader = torch.utils.data.DataLoader(
-        datasets.MNIST('../../data', train=False, transform=transforms.Compose([
-                           transforms.ToTensor(),
-                           transforms.Normalize((0.1307,), (0.3081,))
-                       ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
-
 
     model = Net()#.to(device)
     model.share_memory() # gradients are allocated lazily, so they are not shared here
@@ -163,9 +158,9 @@ def main():
     val = mp.Value('i', 0)
     
     if args.usemysgd:
-      f = open('stochastic_gradient_descent'+'_LR='+str(args.lr)+'_usebackprop=True.txt',"w")
+      f = open('LR='+str(args.lr)+'_usebackprop=True.txt',"w")
     else:
-      f = open('stochastic_gradient_descent'+'_lr='+str(args.lr)+'_usebackprop=False.txt',"w")
+      f = open('LR='+str(args.lr)+'_usebackprop=False.txt',"w")
 
     # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
@@ -174,26 +169,36 @@ def main():
     p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
     p.start()
     processes.append(p)
-    p = mp.Process(target=modelsave, args=(args, model, val))
-    p.start()
-    processes.append(p)
+    
+    if args.timemeasure == 0:
+        p = mp.Process(target=modelsave, args=(args, model, val))
+        p.start()
+        processes.append(p)
     for p in processes:
         p.join()
     train_end = time.time()
     train_time = (train_end - start)
     
-    results = torch.zeros(args.epochs,4)
-    testerror(args, model, test_loader, results)
-    trainerror(args, model, train_loader, results)
-    f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
-    
-    for i in range(args.epochs):
-      f.write('{}\t'.format(i))
-      f.write(str('%.6f'%results[i][0].item())+"\t")
-      f.write(str('%.2f'%results[i][1].item())+"\t")
-      f.write(str('%.6f'%results[i][2].item())+"\t")
-      f.write(str('%.2f'%results[i][3].item())+"\n")
-      
+    if args.timemeasure == 0:
+        test_loader = torch.utils.data.DataLoader(
+            datasets.MNIST('../../data', train=False, transform=transforms.Compose([
+                            transforms.ToTensor(),
+                            transforms.Normalize((0.1307,), (0.3081,))
+                        ])),
+            batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
+
+        results = torch.zeros(args.epochs,4)
+        testerror(args, model, test_loader, results)
+        trainerror(args, model, train_loader, results)
+        f.write("\n\nEpoch\tLR\tTestLoss\tTestAccuracy\tTrainLoss\tTrainAccuracy\n\n")
+        
+        for i in range(args.epochs):
+            f.write('{}\t'.format(i))
+            f.write(str('%.6f'%results[i][0].item())+"\t")
+            f.write(str('%.2f'%results[i][1].item())+"\t")
+            f.write(str('%.6f'%results[i][2].item())+"\t")
+            f.write(str('%.2f'%results[i][3].item())+"\n")
+        
 
     print("Training time = " + str(train_time)) 
     f.write("\n\nTraining time = " + str(train_time)) 
