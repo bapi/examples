@@ -5,6 +5,7 @@ import time
 import torch.nn as nn
 import torch.nn.functional as F
 import multiprocessing as mp
+import torch.multiprocessing as mpt
 from torchvision import datasets, transforms
 
 from train import train, test, modelsave
@@ -51,12 +52,18 @@ if __name__ == '__main__':
     start = time.time()
     processes = []
     for rank in range(args.num_processes):
-        p = mp.Process(target=train, args=(rank, args, model, barrier))
+        if args.tp:
+            p = mp.Process(target=train, args=(rank, args, model, barrier))
+        else:
+            p = mpt.Process(target=train, args=(rank, args, model, barrier))
         p.start()
         processes.append(p)
     
     if args.timemeasure == 0:
-        p = mp.Process(target=modelsave, args=(args, model, barrier))
+        if args.tp:
+            p = mp.Process(target=modelsave, args=(args, model, barrier))
+        else:
+            p = mp.Process(target=modelsave, args=(args, model, barrier))
         p.start()
         processes.append(p)
     

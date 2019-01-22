@@ -1,6 +1,7 @@
 import os
 import torch
-import torch.multiprocessing as mp
+import multiprocessing as mp
+import torch.multiprocessing as mpt
 # import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
