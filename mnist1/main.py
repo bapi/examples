@@ -74,7 +74,9 @@ def test_epoch(model, test_loader):
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, val):
-  for epoch in range(1, args.epochs + 1):
+    if args.usetp:
+        os.system("taskset -apc %d %d" % (0 % mp.cpu_count(), os.getpid()))
+    for epoch in range(1, args.epochs + 1):
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
@@ -82,6 +84,8 @@ def train(args, model, device, train_loader, optimizer, val):
 
 
 def modelsave(args, model, val):
+    if args.usetp:
+        os.system("taskset -apc %d %d" % (1 % mp.cpu_count(), os.getpid()))
     counter = 0
     while counter < args.epochs:
         if val.value > counter:
@@ -123,7 +127,7 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
-    parser.add_argument('--usetp', type=int, default=1, metavar='U',
+    parser.add_argument('--tp', type=int, default=1, metavar='U',
                         help='Whether to use Thread pinning')
     parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
                         help='Whether Time measure')

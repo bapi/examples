@@ -9,7 +9,8 @@ from myscheduler import MyLR
 
 
 def train(rank, args, model, barrier, rankstart, rankstop):
-    os.system("taskset -apc %d %d" % (rank % mp.cpu_count(), os.getpid()))
+    if args.usetp:
+        os.system("taskset -apc %d %d" % (rank % mp.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     
     train_loader = torch.utils.data.DataLoader(
@@ -31,7 +32,8 @@ def train(rank, args, model, barrier, rankstart, rankstop):
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
 def modelsave(args, model, barrier):
-    os.system("taskset -apc %d %d" % (args.num_processes % mp.cpu_count(), os.getpid()))
+    if args.tp:
+        os.system("taskset -apc %d %d" % (args.num_processes % mp.cpu_count(), os.getpid()))
     counter = torch.zeros([len(barrier)], dtype=torch.int32)
     count = 0
             
