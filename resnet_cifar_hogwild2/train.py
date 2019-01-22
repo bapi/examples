@@ -4,12 +4,10 @@ import torch.multiprocessing as mp
 # import torch.optim as optim
 import torch.nn.functional as F
 from torchvision import datasets, transforms
-from mysgd import BATCH_PARTITIONED_SGD
-from myscheduler import MyLR
+from mysgd import StochasticGD
 from resnet_class import ResNet, ResidualBlock, transform, train_dataset, test_dataset, criterion
 
-
-def train(rank, args, model, barrier, rankstart, rankstop):
+def train(rank, args, model, barrier):
     if args.tp:
         os.system("taskset -apc %d %d" % (rank % mp.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
@@ -18,13 +16,10 @@ def train(rank, args, model, barrier, rankstart, rankstop):
                                               batch_size=args.batch_size, 
                                               shuffle=True, num_workers=1)
     
-    optimizer = BATCH_PARTITIONED_SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
-    gamma = 0.9 + torch.rand(1).item()/10
-    scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
+    optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     for epoch in range(1, args.epochs + 1):
-        scheduler.step()
         print("Training: Epoch = " + str(epoch))
-        loss = train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
+        loss = train_epoch(epoch, args, model, train_loader, optimizer)
         barrier[rank] +=1
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
@@ -62,7 +57,7 @@ def trainerror(args, model, test_loader, results):
         results[i][2] = l
         results[i][3] = a    
 
-def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop):
+def train_epoch(epoch, args, model, data_loader, optimizer):
     model.train()
     # pid = os.getpid()
     for batch_idx, (data, target) in enumerate(data_loader):
@@ -71,7 +66,7 @@ def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop)
         loss = criterion(output, target)
         if not args.usemysgd:
             loss.backward()
-        optimizer.step(loss, rankstart, rankstop, args.usemysgd)
+        optimizer.step(loss, args.usemysgd)
         # if batch_idx % args.log_interval == 0:
         #     print('{}\tTrain Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
         #         pid, epoch, batch_idx * len(data), len(data_loader.dataset),
