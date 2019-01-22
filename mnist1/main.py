@@ -1,6 +1,6 @@
 from __future__ import print_function
 import argparse
-import multiprocessing as mp
+import torch.multiprocessing as mp
 import os
 import time 
 import torch
