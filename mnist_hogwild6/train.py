@@ -70,7 +70,7 @@ def train_epoch(epoch, args, model, data_loader, optimizer, rankstart, rankstop)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
-        if args.usemysgd:
+        if not args.usemysgd:
             loss.backward()
         optimizer.step(loss, rankstart, rankstop, args.usemysgd)
         # if batch_idx % args.log_interval == 0:
