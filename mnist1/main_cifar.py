@@ -25,7 +25,7 @@ def train_epoch(args, model, device, train_loader, optimizer, epoch):
         data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
-        loss = F.nll_loss(output, target)
+        loss = criterion(output, target)
         if not args.usemysgd:
           loss.backward()
           optimizer.step()
@@ -43,20 +43,20 @@ def test_epoch(model, test_loader):
     correct = 0
     with torch.no_grad():
         for data, target in test_loader:
-            output = model(data)
-            # test_loss += F.nll_loss(output, target, reduction='sum').item() # sum up batch loss
-            test_loss += criterion(output, target, reduction='sum').item() # sum up batch loss
-            pred = output.max(1, keepdim=True)[1] # get the index of the max log-probability
-            correct += pred.eq(target.view_as(pred)).sum().item()
-            # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{}\n'.format(
-            # test_loss, correct, len(test_loader.dataset)))
-    
+            outputs = model(data)
+            test_loss += criterion(outputs, target, reduction='sum').item() # sum up batch loss
+            _, predicted = torch.max(outputs.data, 1)
+            # total += target.size(0)
+            correct += (predicted == target).sum().item()
+            # accuracy = correct/total
+
+            
 
     test_loss = (test_loss*10000) / len(test_loader.dataset)
-    accuracy = correct#100. * correct / len(test_loader.dataset)
+    # accuracy = correct#100. * correct / len(test_loader.dataset)
     # print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
     #     test_loss, correct, len(test_loader.dataset), accuracy))
-    return (test_loss,accuracy)
+    return (test_loss,correct)
 
 def train(args, model, device, train_loader, optimizer, val):
     if args.tp:
