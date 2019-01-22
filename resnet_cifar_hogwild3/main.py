@@ -33,6 +33,8 @@ parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
                         help='Whether Time measure')
 parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
+parser.add_argument('--tp', type=int, default=1, metavar='U',
+                        help='Whether to use custom SGD')
 
 if __name__ == '__main__':
     args = parser.parse_args()
