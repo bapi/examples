@@ -74,7 +74,7 @@ def test_epoch(model, test_loader):
     return (test_loss,accuracy)
 
 def train(args, model, device, train_loader, optimizer, val):
-    if args.usetp:
+    if args.tp:
         os.system("taskset -apc %d %d" % (0 % mp.cpu_count(), os.getpid()))
     for epoch in range(1, args.epochs + 1):
         print("Training: Epoch = " + str(epoch))
@@ -84,7 +84,7 @@ def train(args, model, device, train_loader, optimizer, val):
 
 
 def modelsave(args, model, val):
-    if args.usetp:
+    if args.tp:
         os.system("taskset -apc %d %d" % (1 % mp.cpu_count(), os.getpid()))
     counter = 0
     while counter < args.epochs:

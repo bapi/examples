@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 from mysgd import StochasticGD
 
 def train(rank, args, model, barrier, lock):
-    if args.usetp:
+    if args.tp:
         os.system("taskset -apc %d %d" % (rank % mp.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     

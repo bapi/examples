@@ -9,7 +9,7 @@ from myscheduler import MyLR
 
 
 def train(rank, args, model, barrier, rankstart, rankstop):
-    if args.usetp:
+    if args.tp:
         os.system("taskset -apc %d %d" % (rank % mp.cpu_count(), os.getpid()))
     torch.manual_seed(args.seed + rank)
     
