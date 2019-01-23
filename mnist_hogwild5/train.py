@@ -106,7 +106,7 @@ def test(args, model, results, barrier, train_loader):
             transforms.ToTensor(),
             transforms.Normalize((0.1307,), (0.3081,))
         ])),
-        batch_size=args.test_batch_size, shuffle=True, num_workers=1)
+        batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
     testerror(args, model, test_loader, results)
     trainerror(args, model, train_loader, results)
     
