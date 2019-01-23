@@ -19,29 +19,29 @@ from myscheduler import MyLR
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 20, 5, 1)
-        self.conv2 = nn.Conv2d(20, 50, 5, 1)
-        self.fc1 = nn.Linear(4*4*50, 500)
-        self.fc2 = nn.Linear(500, 10)
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.conv2_drop = nn.Dropout2d()
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = F.relu(self.conv2(x))
-        x = F.max_pool2d(x, 2, 2)
-        x = x.view(-1, 4*4*50)
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x)), 2))
+        x = x.view(-1, 320)
         x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
     
-def train_epoch(args, model, device, train_loader, optimizer, epoch, scheduler):
+def train_epoch(args, model, train_loader, optimizer, epoch, scheduler):
     model.train()
     # lerning_rate = 0
     # for param_group in optimizer.param_groups:
     #     lerning_rate = param_group['lr']
         
     for batch_idx, (data, target) in enumerate(train_loader):
-        data, target = data.to(device), target.to(device)
+        # data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output = model(data)
         loss = F.nll_loss(output, target)
@@ -76,13 +76,13 @@ def test_epoch(model, test_loader):
     #     test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
-def train(args, model, device, train_loader, optimizer, val, scheduler):
+def train(args, model, train_loader, optimizer, val, scheduler):
     if args.tp:
         os.system("taskset -apc %d %d" % (0 % mp.cpu_count(), os.getpid()))
     for epoch in range(1, args.epochs + 1):
         scheduler.step()
         print("Training: Epoch = " + str(epoch))
-        loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
+        loss = train_epoch(args, model, train_loader, optimizer, epoch, scheduler)
         val.value += 1
         print("TrainError = " + str('%.6f'%loss.item()) + "\n")
 
@@ -131,7 +131,7 @@ def main():
                         help='how many batches to wait before logging training status')
     parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
-    parser.add_argument('--tp', type=int, default=1, metavar='U',
+    parser.add_argument('--tp', type=int, default=0, metavar='U',
                         help='Whether to use Thread pinning')
     parser.add_argument('--timemeasure', type=int, default=1, metavar='U',
                         help='Whether Time measure')
@@ -177,9 +177,9 @@ def main():
     start = time.time()
     processes = []
     if args.tp:
-        p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val, scheduler))
+        p = mp.Process(target=train, args=(args, model, train_loader, optimizer, val, scheduler))
     else:
-        p = mpt.Process(target=train, args=(args, model, device, train_loader, optimizer, val, scheduler))
+        p = mpt.Process(target=train, args=(args, model, train_loader, optimizer, val, scheduler))
     p.start()
     processes.append(p)
     
