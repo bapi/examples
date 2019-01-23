@@ -164,7 +164,7 @@ def main():
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = mp.Value('i', 0)
     
-    f = open('LR='+str(args.lr)+'_numproc='+str(args.num_processes)+'_epoch='+str(args.epochs)+'.txt',"w")
+    f = open('LR='+str(args.lr)+'_epoch='+str(args.epochs)+'.txt',"w")
     
     # print('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))
     # f.write('Stochastic Gradient descent: Batch-size = {}'.format(args.batch_size))

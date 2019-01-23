@@ -35,8 +35,6 @@ parser.add_argument('--usemysgd', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
 parser.add_argument('--tp', type=int, default=1, metavar='U',
                         help='Whether to use custom SGD')
-parser.add_argument('--tp', type=int, default=1, metavar='U',
-                        help='Whether to use custom SGD')
         
 class Net(nn.Module):
     def __init__(self):
