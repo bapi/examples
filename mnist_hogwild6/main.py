@@ -114,7 +114,7 @@ if __name__ == '__main__':
                             transforms.ToTensor(),
                             transforms.Normalize((0.1307,), (0.3081,))
                         ])),
-            batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
+            batch_size=args.test_batch_size, shuffle=True, num_workers=1)
 
         results = torch.zeros(args.epochs,4)
         test(args, model, results, barrier, train_loader)
