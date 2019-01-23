@@ -5,6 +5,7 @@ import torch.multiprocessing as mp
 import torch.nn.functional as F
 from torchvision import datasets, transforms
 from mysgd import StochasticGD
+from myscheduler import MyLR
 
 def train(rank, args, model, barrier, lock):
     if args.tp:
@@ -20,7 +21,10 @@ def train(rank, args, model, barrier, lock):
         batch_size=args.batch_size, shuffle=True, num_workers=1)
 
     optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    gamma = 0.9 + torch.rand(1).item()/10
+    scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     for epoch in range(1, args.epochs + 1):
+        scheduler.step()
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(epoch, args, model, train_loader, optimizer, lock)
         barrier[rank] +=1

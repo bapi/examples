@@ -81,7 +81,7 @@ if __name__ == '__main__':
 
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                               batch_size=args.batch_size, 
-                                              shuffle=True, num_workers=mp.cpu_count())
+                                              shuffle=True, num_workers=1)
     
 
         results = torch.zeros(args.epochs,4)

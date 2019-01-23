@@ -25,7 +25,7 @@ def train(rank, args, model, barrier, rankstart, rankstop):
     gamma = 0.9 + torch.rand(1).item()/10
     scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     for epoch in range(1, args.epochs + 1):
-        scheduler.step()
+        # scheduler.step()
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(epoch, args, model, train_loader, optimizer, rankstart, rankstop)
         barrier[rank] +=1

@@ -12,6 +12,8 @@ import torch.optim.lr_scheduler as lrs
 from torchvision import datasets, transforms
 # from torch.multiprocessing import Process, Value, Lock, Queue
 from mysgd import StochasticGD
+from myscheduler import MyLR
+
 
 
 class Net(nn.Module):
@@ -32,7 +34,7 @@ class Net(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
     
-def train_epoch(args, model, device, train_loader, optimizer, epoch):
+def train_epoch(args, model, device, train_loader, optimizer, epoch, scheduler):
     model.train()
     # lerning_rate = 0
     # for param_group in optimizer.param_groups:
@@ -74,10 +76,11 @@ def test_epoch(model, test_loader):
     #     test_loss, correct, len(test_loader.dataset), accuracy))
     return (test_loss,accuracy)
 
-def train(args, model, device, train_loader, optimizer, val):
+def train(args, model, device, train_loader, optimizer, val, scheduler):
     if args.tp:
         os.system("taskset -apc %d %d" % (0 % mp.cpu_count(), os.getpid()))
     for epoch in range(1, args.epochs + 1):
+        scheduler.step()
         print("Training: Epoch = " + str(epoch))
         loss = train_epoch(args, model, device, train_loader, optimizer, epoch)
         val.value += 1
@@ -156,10 +159,13 @@ def main():
     model = Net()#.to(device)
     model.share_memory() # gradients are allocated lazily, so they are not shared here
     
+    
     if args.usemysgd:
       optimizer = StochasticGD(model.parameters(), lr=args.lr, momentum=args.momentum)
     else:
       optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
+    gamma = 0.9# + torch.rand(1).item()/10
+    scheduler = MyLR(optimizer, gamma)#lrs.ReduceLROnPlateau(optimizer, 'min', gamma) #
     # gamma = 0.9 + torch.rand(1).item()/10
     # scheduler = lrs.ExponentialLR(optimizer, gamma)
     val = mp.Value('i', 0)
@@ -171,9 +177,9 @@ def main():
     start = time.time()
     processes = []
     if args.tp:
-        p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
+        p = mp.Process(target=train, args=(args, model, device, train_loader, optimizer, val, scheduler))
     else:
-        p = mpt.Process(target=train, args=(args, model, device, train_loader, optimizer, val))
+        p = mpt.Process(target=train, args=(args, model, device, train_loader, optimizer, val, scheduler))
     p.start()
     processes.append(p)
     

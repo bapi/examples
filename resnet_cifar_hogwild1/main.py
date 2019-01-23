@@ -94,7 +94,7 @@ if __name__ == '__main__':
         torch.manual_seed(args.seed)
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset,
                                               batch_size=args.batch_size, 
-                                              shuffle=True)
+                                              shuffle=True, num_workers=1)
     
         results = torch.zeros(args.epochs,4)
         test(args, model, results, barrier, train_loader)

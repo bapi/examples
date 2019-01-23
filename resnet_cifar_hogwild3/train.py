@@ -96,7 +96,7 @@ def test(args, model, results, barrier, train_loader):
     torch.manual_seed(args.seed)
 
     test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
-            batch_size=args.test_batch_size, shuffle=True, num_workers=mp.cpu_count())
+            batch_size=args.test_batch_size, shuffle=True, num_workers=1)
     testerror(args, model, test_loader, results)
     trainerror(args, model, train_loader, results)
     
