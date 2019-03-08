@@ -78,7 +78,7 @@ class StochasticGD(Optimizer):
         loss = None
         if closure is not None:
             loss = closure()
-
+        dp = []
         for group in self.param_groups:
             weight_decay = group['weight_decay']
             momentum = group['momentum']
@@ -110,7 +110,13 @@ class StochasticGD(Optimizer):
                         d_p = d_p.add(momentum, buf)
                     else:
                         d_p = buf
-                with lock:
-                    p.data.add_(-group['lr'], d_p)
 
+                dp.append(d_p)
+
+
+        with lock:
+            counter = 0
+            for p in group['params']:
+                p.data.add_(-group['lr'], dp[counter])
+                counter+=1
         return loss
